@@ -1,0 +1,23 @@
+{
+  "startPhase" : "prelaunch",
+  "phaseCountlimit" : 10,
+  
+  "prelaunch" : {
+
+    "processList" : [
+      ["git", "pull"]
+    ],
+    
+    "nextPhase" : "launch"
+  },
+  
+  "launch" : {
+
+    "processList" : [
+      ["start", "webserver.py"],
+      ["start", "client.py"],
+      ["start", "Test.py"]
+    ]
+    
+  }
+}
