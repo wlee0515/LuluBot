@@ -1,7 +1,7 @@
 import serial
 
 class SSC03A():
-    def __init__(self, comport ="/dev/ttyACM0",timeout=1):
+    def __init__(self, comport ="/dev/ttyAMA0",timeout=1):
         self.comport = None
         self.isInitialized = False
 

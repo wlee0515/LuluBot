@@ -3,7 +3,7 @@ from Device.pololu import SSC03A
 import time
 
 def main():
-    wDevice = SSC03A("/dev/ttyACM0", 1)
+    wDevice = SSC03A("/dev/ttyAMA0", 1)
     time.sleep(1.0)
 
     wSimple_Protocal = True
