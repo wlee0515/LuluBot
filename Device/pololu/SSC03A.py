@@ -1,8 +1,6 @@
 import serial
-import sys
-import time
 
-class Device():
+class SSC03A():
     def __init__(self, comport ="/dev/ttyACM0",timeout=1):
         self.comport = None
         self.isInitialized = False
@@ -10,7 +8,6 @@ class Device():
         try:
             self.comport = serial.Serial(comport,timeout=timeout)
             self.comport.baudrate = 9600
-            self.comport.baudrate =  2400
             self.comport.parity = serial.PARITY_NONE
             self.comport.stopbits = serial.STOPBITS_ONE
             self.comport.bytesize = serial.EIGHTBITS
@@ -42,15 +39,12 @@ class Device():
                 for subByte in byte:
                     wInput = bytearray([int(subByte)])
                     buffer.append(wInput[0])
-#                    self.comport.write(wInput)
             else:
                 wInput = bytearray([int(byte)])
                 buffer.append(wInput[0])
-#                self.comport.write(wInput)
         print("sending data : [{}]".format(buffer))
 
         self.comport.write(buffer)
-#        self.comport.flush()
     
     def simple_protocol(self, iServoNumber, iData):
         wStartByte = 0xFF
@@ -85,6 +79,55 @@ class Device():
         self.simple_protocol(iServoNumber, wByteOne)
         
 
+    # Pololu interface
+    def setParameter(self, iServoNumber, iSetOn, iInvert, iRange):
+        wRange = iRange
+        if wRange > 15:
+            wRange = 15
+        elif wRange < 0:
+            wRange = 0
+
+        wByte = int(wRange)
+        if (True == iSetOn):
+            wByte = wByte&32
+        if (True == iInvert):
+            wByte = wByte&16
+        
+        self.polulu_protocol(0x00, iServoNumber, wByte)
+
+    def setSpeed(self, iServoNumber, iSpeed):
+        wSpeed = iSpeed
+        if (wSpeed > 127):
+            wSpeed = 127
+        elif (wSpeed < 0):
+            wSpeed = 0
+        wByte=int(wSpeed)
+        self.polulu_protocol(0x01, iServoNumber, wByte)
+    
+    def set7BitPosition(self, iServoNumber, iRatio):
+        wRatio = iRatio
+        if (wRatio > 1.0):
+            wRatio = 1.0
+        elif (wRatio < 0.0):
+            wRatio = 0.0
+        wByte=int(wRatio*127)
+        self.polulu_protocol(0x02, iServoNumber, wByte)
+
+    def set8BitPosition(self, iServoNumber, iRatio):
+        wRatio = iRatio
+        if (wRatio > 1.0):
+            wRatio = 1.0
+        elif (wRatio < 0.0):
+            wRatio = 0.0
+            
+        #Valid range is 500-5500
+        wOutput=int(wRatio*255)
+        #Get the lowest 7 bits
+        wByte2=wOutput&127
+        #Get the highest 7 bits
+        wByte1=int((wOutput-(wOutput&127))/128)
+        self.polulu_protocol(0x04, iServoNumber, [wByte1, wByte2])
+        
     def setPosition(self, iServoNumber, iAngle_deg):
         wAngle = iAngle_deg
         if (wAngle > 180):
@@ -95,40 +138,36 @@ class Device():
         #Valid range is 500-5500
         wOutput=int(5000*wAngle/180+500)
         #Get the lowest 7 bits
-        byteone=wOutput&127
+        wByte2=wOutput&127
         #Get the highest 7 bits
-        bytetwo=int((wOutput-(wOutput&127))/128)
-        print("byte 1 = {}, byte 2 = {}".format(byteone,bytetwo))
-        self.polulu_protocol(0x04, iServoNumber, [bytetwo, byteone])
+        wByte1=int((wOutput-(wOutput&127))/128)
+        self.polulu_protocol(0x04, iServoNumber, [wByte1, wByte2])
 
+    def setNeutralPosition(self, iServoNumber, iAngle_deg):
+        wAngle = iAngle_deg
+        if (wAngle > 180):
+            wAngle = 180
+        elif (wAngle < 0):
+            wAngle = 0
 
-    def setSpeed(self, iServoNumber, iSpeed):
-        wSpeed = iSpeed
-        if (wSpeed > 127):
-            wSpeed = 127
-        elif (wSpeed < 0):
-            wSpeed = 0
+        #Valid range is 500-5500
+        wOutput=int(5000*wAngle/180+500)
         #Get the lowest 7 bits
-        byteone=int(wSpeed)
-        self.polulu_protocol(0x01, iServoNumber, byteone)
+        wByte2=wOutput&127
+        #Get the highest 7 bits
+        wByte1=int((wOutput-(wOutput&127))/128)
+        self.polulu_protocol(0x05, iServoNumber, [wByte1, wByte2])
+        
+    def setServoNumberSetId(self, iServoNumberSetId):
+        wSetId = iServoNumberSetId
+        if (wSetId > 15):
+            wSetId = 15
+        elif (wSetId < 0):
+            wSetId = 0
+            
+        #Valid range is 500-5500
+        wSetId=int(wSetId)
+        self.send(0xFF,0x02,wSetId)
 
-def main():
-    wDevice = Device("/dev/ttyAMA0", 1)
-    time.sleep(1.0)
-
-    wSimple_Protocal = True
-    for i in range (0, 9):
-      wAngle = i*10
-      print("Setting angle to {}".format(wAngle))
-      if True == wSimple_Protocal:
-          for j in range(0,8):
-             wDevice.setPosition_simpleProtocol(j, wAngle)
-      else:
-          for j in range(0,8):
-             wDevice.setPosition(j,wAngle)
-             wDevice.setSpeed(j,2)
-#             time.sleep(0.01)
-      time.sleep(1)
-
-if "__main__":
-    main()
+    def checkServoNumberSetId(self):
+        self.send(0xFF,0x02,0x10)
