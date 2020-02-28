@@ -1,5 +1,5 @@
-import json
-import yaml
+import os, sys
+import json, yaml
 
 def saveObjAsJSON(iFileName, iObject):
     wfile = open(iFileName, "w")
@@ -23,3 +23,9 @@ def loadYAML(iFileName):
         wJSONObj = yaml.load(wFileHandler)
     wFileHandler.close()
     return wJSONObj
+
+def log(iLog):
+    print("[{}] {}".format(os.path.basename(sys.argv[0]), iLog))
+
+def taggedInput(iMessage):
+    return input("[{}] {}".format(os.path.basename(sys.argv[0]), iMessage))

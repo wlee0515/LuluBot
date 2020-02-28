@@ -13,10 +13,11 @@
   
   "launch" : {
 
+    "runParallel" : true,
+    
     "processList" : [
-      ["start", "webserver.py"],
-      ["start", "client.py"],
-      ["start", "Test.py"]
+      ["Lulubot.py"],
+      ["webserver.py"]
     ]
     
   }

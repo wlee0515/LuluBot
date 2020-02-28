@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" href="/static/style.css" type="text/css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Ctrl Center Login</title>
+  <style>
+    
+  </style>
+	<script src="authentication.js"></script>
+
+	<script type="text/javascript">
+	
+		window.addEventListener("load", function() {
+			document.getElementById("id_form").addEventListener("submit", function(e){
+
+				e.preventDefault();
+				var wUserName = document.getElementById("id_username")
+				var wPassword = document.getElementById("id_password")
+				login(wUserName.value, wPassword.value, function(response){
+					if (true == response) {
+						window.location.href = "/site/home";
+					}
+					else {
+						alert("Not Logged in");
+						
+					}
+				})
+			});
+		})
+	
+
+  </script>
+</head>
+<body>
+	<!--
+	<form action="/login" method="POST">
+	-->
+	<form action="" id="id_form">
+	<div class="login">
+		<div class="login-screen">
+			<div class="app-title">
+				<h1>Login</h1>
+			</div>
+			<div class="login-form">
+				<div class="control-group">
+					<input type="text" class="login-field" value="" placeholder="username" name="username" id="id_username">
+					<label class="login-field-icon fui-user" for="login-name"></label></div>
+				<div class="control-group">
+					<input type="password" class="login-field" value="" placeholder="password" name="password" id="id_password">
+					<label class="login-field-icon fui-lock" for="login-pass"></label></div>
+					<input type="submit" value="Log in" class="btn btn-primary btn-large btn-block">
+
+				</div>
+			</div>
+		</div>
+	</form>
+	<!--
+	<input type="button" value="Log Out" onclick="logout()">
+	-->
+</body>
+</html>
+
+

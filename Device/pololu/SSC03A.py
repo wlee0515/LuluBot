@@ -1,4 +1,5 @@
 import serial
+from Common.utility import log
 
 class SSC03A():
     def __init__(self, comport ="/dev/ttyAMA0",timeout=1):
@@ -13,24 +14,24 @@ class SSC03A():
             self.comport.bytesize = serial.EIGHTBITS
             self.comport.close()
             self.comport.open()
-            print("Link to Command Port -" + comport + "- successful")
+            log("Link to Command Port -" + comport + "- successful")
         except serial.serialutil.SerialException as e:
-            print (e)
-            print("Link to Command Port -" + comport + "- failed")
+            log (e)
+            log("Link to Command Port -" + comport + "- failed")
 
         self.isInitialized = None != self.comport
         if (True == self.isInitialized):
-            print("Device is ready")
+            log("Device is ready")
         else:
-            print("Device is not ready")
+            log("Device is not ready")
 
     def send(self,*data):
         if not self.isInitialized:
-            print("Not initialized")
+            log("Not initialized")
             return
 
         if not self.comport.writable():
-            print("Device not writable")
+            log("Device not writable")
             return
 
         buffer =  bytearray()
@@ -42,7 +43,7 @@ class SSC03A():
             else:
                 wInput = bytearray([int(byte)])
                 buffer.append(wInput[0])
-        print("sending data : [{}]".format(buffer))
+        log("sending data : [{}]".format(buffer))
 
         self.comport.write(buffer)
     

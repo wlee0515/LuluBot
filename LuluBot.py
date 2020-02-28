@@ -1,15 +1,24 @@
+from Common.utility import log, taggedInput
 from Device.pololu import SSC03A
+from Device.socket import UDPClient
 
 import time
 
+def UDPCallBack(iMessage) :
+    log(iMessage)
+    return "Yes?"
+
 def main():
+
+    wUDPSocket = UDPClient("localhost", 10000, UDPCallBack)
+
     wDevice = SSC03A("/dev/ttyAMA0", 1)
     time.sleep(1.0)
 
     wSimple_Protocal = True
     for i in range (0, 9):
       wAngle = i*10
-      print("Setting angle to {}".format(wAngle))
+      log("Setting angle to {}".format(wAngle))
       if True == wSimple_Protocal:
           for j in range(0,8):
              wDevice.setPosition_simpleProtocol(j, wAngle)
@@ -17,8 +26,15 @@ def main():
           for j in range(0,8):
              wDevice.setPosition(j,wAngle)
              wDevice.setSpeed(j,2)
-#             time.sleep(0.01)
       time.sleep(1)
+    
+    wInput = ""
+    while("exit" != wInput) :
+        wInput = taggedInput("Enter Command : ")
+        wUDPSocket.send(wInput)
+    wUDPSocket.stopSocket()
+
+    
 
 def test():
     Device = SSC03A()

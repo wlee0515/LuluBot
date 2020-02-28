@@ -1,27 +1,11 @@
-import os
-import subprocess
-import Common.utility as utility
-import sys
+import os, sys, subprocess, threading
+from Common.utility import log, loadJSON
 import json
 
 def launchProcess(iProcess):
-    wStdOutMode = subprocess.PIPE
-    if "start" == iProcess[0]:
-        wStdOutMode = subprocess.DEVNULL
-    wFromShell = True
-    out = subprocess.Popen(
-        iProcess, 
-        stdout=wStdOutMode, 
-        stderr=subprocess.STDOUT,
-        shell=wFromShell)
-
-    wStdOut, wStdErr = out.communicate()
-
-    if None != wStdOut:
-        print(wStdOut.decode("utf-8"))
-    
-    if None != wStdErr:
-        print(wStdErr.decode("utf-8"))
+    log("Launching Process : {}".format(iProcess))
+    process = subprocess.call(iProcess, shell=True)
+    log("Process End : {}".format(iProcess))
 
 def main():
 
@@ -30,9 +14,9 @@ def main():
     wPhase = ""
     wPhaseCount = -1
     
-    print("Session Arguments:")
+    log("Session Arguments:")
     for i in range(0, len(sys.argv)):
-        print("argv[{}] : {}".format(i, sys.argv[i]))
+        log("argv[{}] : {}".format(i, sys.argv[i]))
         if 0 == i:
             wLauncherFileName = sys.argv[i]
         if 1 == i:
@@ -42,54 +26,81 @@ def main():
         if 3 == i:
             wPhaseCount = int(sys.argv[i])
 
-    print("Current Launch File [{}]".format(wLauncherFileName))
-    print("Loading Configuration File [{}]".format(wConfigFileName))
-    wConfigFile = utility.loadJSON(wConfigFileName)
+    log("Current Launch File [{}]".format(wLauncherFileName))
+    log("Loading Configuration File [{}]".format(wConfigFileName))
+    wConfigFile = loadJSON(wConfigFileName)
     if None == wConfigFile:
-        print("Unable to load Configuration File")
+        log("Unable to load Configuration File")
         return
     else:
-        print("Configuration File Loaded")
+        log("Configuration File Loaded")
     
     if "" == wPhase:
-        print("Phase not set in arguments. Searching configuration file.")
+        log("Phase not set in arguments. Searching configuration file.")
         if None == wConfigFile["startPhase"]:
-            print("\"startPhase\" not defined in configuration file.")
+            log("\"startPhase\" not defined in configuration file.")
             return
         else:
             wPhase = wConfigFile["startPhase"]
     
-    print("Retrieving Current Phase Settings")
+    log("Retrieving Current Phase Settings")
     
     if None == wConfigFile[wPhase]:
-        print("Current phase, \"{}\" is not defined".format(wPhase))
+        log("Current phase, \"{}\" is not defined".format(wPhase))
         return
     
     wPhaseSetting = wConfigFile[wPhase]
     
-    print("Current phase, \"{}\" definition :".format(wPhase))
-    print(json.dumps(wPhaseSetting, indent=2))
+    log("Current phase, \"{}\" definition :".format(wPhase))
+    log(json.dumps(wPhaseSetting, indent=2))
     
     if 0 > wPhaseCount:
-        print("Phase Count not set or badly defined. Setting phase count to 0")
+        log("Phase Count not set or badly defined. Setting phase count to 0")
         wPhaseCount = 0
-    print("Current Phase Count : {}".format(wPhaseCount))
+    log("Current Phase Count : {}".format(wPhaseCount))
     
     if "phaseCountlimit" not in wConfigFile:
-        print("\"phaseCountlimit\" limit not defined in configuration file")
+        log("\"phaseCountlimit\" limit not defined in configuration file")
         return
     else :
         if wPhaseCount > wConfigFile["phaseCountlimit"]:
-            print("\"phaseCountlimit\" limit exceeded")
+            log("\"phaseCountlimit\" limit exceeded")
             return
     
     if "processList" in wPhaseSetting:
-        print("Processing \"processList\"")
-        for wProcess in wPhaseSetting["processList"]:
-            launchProcess(wProcess)
+        log("Processing \"processList\"")
+
+        wInParallel = False
+        if "runParallel" in wPhaseSetting:
+            log( "\"runParallel\" is defined")
+            if True == wPhaseSetting["runParallel"]:
+                wInParallel = True
+                log( "\"runParallel\" is defined as [True]. Will run process in parallel")
+            else :
+                log( "\"runParallel\" is defined as [False]. Will run process sequentially")
+                                
+        else:
+            log ("\"runParallel\" is not defined, process will execute sequentially.")
+        
+        if False == wInParallel:
+            for wProcess in wPhaseSetting["processList"]:
+                launchProcess(wProcess)
+        else:
+        
+            wThreadList = []
+
+            for wProcess in wPhaseSetting["processList"]:
+                wThread = threading.Thread(target=launchProcess, args=(wProcess,)) 
+                wThreadList.append(wThread)
             
+            for wProcessThread in wThreadList:
+                wProcessThread.start()
+
+            for wProcessThread in wThreadList:
+                wProcessThread.join()
+                                    
     if "nextPhase" in wPhaseSetting:
-        print("Starting \"nextPhase\" : \"{}\"".format(wPhaseSetting["nextPhase"]))
+        log("Starting \"nextPhase\" : \"{}\"".format(wPhaseSetting["nextPhase"]))
         launchProcess([wLauncherFileName, wConfigFileName, wPhaseSetting["nextPhase"], str(wPhaseCount+1) ])
     return
 

@@ -1,0 +1,32 @@
+<link rel="stylesheet" href="/static/style.css" type="text/css">
+<script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
+<script type="text/javascript" charset="utf-8">
+
+/*
+    var socket = io();
+    socket.on('connect', function() {
+        socket.emit('my event', {data: 'I\'m connected!'});
+			var wText = document.getElementById("TextOut");
+			wText.innerText += "Connection Started"
+			
+    });
+		*/
+		var connection = new WebSocket('ws://0.0.0.0:2000');
+		connection.onopen = function () {
+  connection.send('Ping'); // Send the message 'Ping' to the server
+};
+
+// Log errors
+connection.onerror = function (error) {
+  console.log('WebSocket Error ' + error);
+};
+
+// Log messages from the server
+connection.onmessage = function (e) {
+  console.log('Server: ' + e.data);
+};
+
+</script>
+
+<div class="TextOut">
+</div>
