@@ -1,2 +1,7 @@
+eventlet==0.25.1
+Flask==1.1.1
+Flask-SocketIO==4.2.1
+Flask-SQLAlchemy==2.4.1
+greenlet==0.4.15
 pyserial==3.2.
 PyYAML==5.3
