@@ -17,7 +17,7 @@
     "runParallel" : true,
     
     "processList" : [
-      ["python", "Lulubot.py"],
+      ["python", "LuluBot.py"],
       ["python", "webserver.py"]
     ]
     
