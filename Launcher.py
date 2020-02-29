@@ -3,8 +3,7 @@ from Common.utility import log, loadJSON
 import json
 
 def launchProcess(iProcess):
-    log("Launching Process : {}".format(iProcess))
-    
+    log("Received Process : {}".format(iProcess))
     wProcess = []
     for wArg in iProcess:
         if "python" == wArg:
@@ -15,6 +14,7 @@ def launchProcess(iProcess):
         else:
             wProcess.append(wArg)
 
+    log("Launching Process : {}".format(iProcess))
     if os.name == 'nt':
         process = subprocess.run(iProcess, shell=True, universal_newlines=True)
     else:
