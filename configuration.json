@@ -5,7 +5,8 @@
   "prelaunch" : {
 
     "processList" : [
-      ["git", "pull"]
+      ["git", "pull"],
+      ["pip", "install", "-r" ,"./requirements.txt"]
     ],
     
     "nextPhase" : "launch"
