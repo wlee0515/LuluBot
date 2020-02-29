@@ -4,7 +4,22 @@ import json
 
 def launchProcess(iProcess):
     log("Launching Process : {}".format(iProcess))
-    process = subprocess.run(iProcess, universal_newlines=True)
+    
+    wProcess = []
+    for wArg in iProcess:
+        if "python" == wArg:
+            if os.name == 'nt':
+                wProcess.append("python")
+            else:
+                wProcess.append("python3")
+        else:
+            wProcess.append(wArg)
+
+    if os.name == 'nt':
+        process = subprocess.run(iProcess, shell=True, universal_newlines=True)
+    else:
+        process = subprocess.run(iProcess, universal_newlines=True)
+
     log("Process End : {}".format(iProcess))
 
 def main():
@@ -101,7 +116,7 @@ def main():
                                     
     if "nextPhase" in wPhaseSetting:
         log("Starting \"nextPhase\" : \"{}\"".format(wPhaseSetting["nextPhase"]))
-        launchProcess([wLauncherFileName, wConfigFileName, wPhaseSetting["nextPhase"], str(wPhaseCount+1) ])
+        launchProcess(["python", wLauncherFileName, wConfigFileName, wPhaseSetting["nextPhase"], str(wPhaseCount+1) ])
     return
 
 
