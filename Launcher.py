@@ -4,12 +4,7 @@ import json
 
 def launchProcess(iProcess):
     log("Launching Process : {}".format(iProcess))
-
-    wCmd = []
-    for wArg in iProcess:
-        wCmd.append(wArg)
-
-    process = subprocess.run(wCmd, shell=True, universal_newlines=True)
+    process = subprocess.run(iProcess, universal_newlines=True)
     log("Process End : {}".format(iProcess))
 
 def main():
