@@ -14,13 +14,13 @@ def launchProcess(iProcess):
         else:
             wProcess.append(wArg)
 
-    log("Launching Process : {}".format(iProcess))
+    log("Launching Process : {}".format(wProcess))
     if os.name == 'nt':
-        process = subprocess.run(iProcess, shell=True, universal_newlines=True)
+        process = subprocess.run(wProcess, shell=True, universal_newlines=True)
     else:
-        process = subprocess.run(iProcess, universal_newlines=True)
+        process = subprocess.run(wProcess, universal_newlines=True)
 
-    log("Process End : {}".format(iProcess))
+    log("Process End : {}".format(wProcess))
 
 def main():
 
