@@ -6,7 +6,7 @@
 
     "processList" : [
       ["git", "pull"],
-      ["pip", "install", "-r" ,"./requirements.txt"]
+      ["python", "-m", "pip", "install", "-r" ,"./requirements.txt"]
     ],
     
     "nextPhase" : "launch"
@@ -17,8 +17,8 @@
     "runParallel" : true,
     
     "processList" : [
-      ["Lulubot.py"],
-      ["webserver.py"]
+      ["python", "Lulubot.py"],
+      ["python", "webserver.py"]
     ]
     
   }
