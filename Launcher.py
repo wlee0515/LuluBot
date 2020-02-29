@@ -4,7 +4,7 @@ import json
 
 def launchProcess(iProcess):
     log("Launching Process : {}".format(iProcess))
-    process = subprocess.call(iProcess, shell=True)
+    process = subprocess.run(iProcess, shell=True, universal_newlines=True)
     log("Process End : {}".format(iProcess))
 
 def main():
