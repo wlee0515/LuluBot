@@ -9,11 +9,16 @@ class UDPClient:
         self.mReceiveThread = None
         self.mCallback = iCallback
         self.mEndReceive = True
+        self.mRunning = False
         
     def stopSocket(self):
+        if False == self.mRunning:
+            return
+        self.mRunning = False
         self.mEndReceive = True
         if None != self.mReceiveThread:
-            self.mReceiveThread.join() 
+            self.mReceiveThread.join()
+            self.mReceiveThread = None 
         self.mSocket.shutdown(socket.SHUT_RDWR)
         self.mSocket.close()
       
@@ -29,6 +34,7 @@ class UDPClient:
             self.mReceiveThread.start()
 
     def recv(self):
+        self.mRunning = True
         while False == self.mEndReceive:
             try:
                 data, server = self.mSocket.recvfrom(4096)
