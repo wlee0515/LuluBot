@@ -15,10 +15,20 @@ def launchProcess(iProcess):
             wProcess.append(wArg)
 
     log("Launching Process : {}".format(wProcess))
-    if os.name == 'nt':
-        process = subprocess.run(wProcess, shell=True, universal_newlines=True)
-    else:
-        process = subprocess.run(wProcess, universal_newlines=True)
+    
+    process = subprocess.Popen(wProcess, universal_newlines=True)
+
+    while None == process.poll():
+        try:
+            outs, errs = process.communicate()
+            if None != outs:
+                log(outs)
+            if None != errs:
+                log(errs)            
+        except TimeoutExpired:
+            pass
+
+    
 
     log("Process End : {}".format(wProcess))
 
