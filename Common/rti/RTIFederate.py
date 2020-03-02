@@ -3,25 +3,43 @@ from Device.socket import UDPClient
 from Common.utility import log
 from .RTISetup import getRtiParticipantTimeOut, getRtiServerAddress, getRtiServerPort
 import base64
+import atexit
+
+gRTIFederate = None
+def getRtiFederate():
+    global gRTIFederate
+    if None == gRTIFederate:
+        gRTIFederate = RTIFederate()
+    return gRTIFederate
+
+
 
 class RTIFederate:
-    def __init__(self, iCallback):
+    def __init__(self):
         self.mUDPClient = UDPClient(getRtiServerAddress(), getRtiServerPort(), self.message)
         self.mStarted = False
         self.mRunning = False
         self.mEntryPointThread = None
         self.mLastEntryPointTime = None
-        self.mEventCallback = iCallback
+        self.mEventCallbackList = []
         self.mLastMessageTime = 0
         self.mSubscriptionList = []
         self.mUpdateSubsciption = False
 
+    def subscribeToEventCallback(self, iCallback):
+        if iCallback not in self.mEventCallbackList:
+            self.mEventCallbackList.append(iCallback)
+    
+    def unsubscribeFromEventCallback(self, iCallback):
+        self.mEventCallbackList = [wCallback for wCallback in self.mEventCallbackList if wCallback != iCallback]
+        
     def startFederate(self):
         if True == self.mStarted:
             return
         self.mStarted = True
         self.mEntryPointThread = threading.Thread(target=self.entryPoint) 
         self.mEntryPointThread.start()
+        log("Rti Federate Started")
 
     def stopFederate(self):
         if False == self.mStarted:
@@ -32,6 +50,7 @@ class RTIFederate:
             self.mEntryPointThread.join()
             self.mEntryPointThread = None
         self.mUDPClient.stopSocket()
+        log("Rti Federate Stopped")
 
     def entryPoint(self):
         self.mRunning = True
@@ -70,7 +89,7 @@ class RTIFederate:
                 return True
         return False
     
-    def unsubscibeFromType(self, iType):
+    def unsubscribeFromType(self, iType):
         if type(iType) == str:
             if iType in self.mSubscriptionList:
                 self.mSubscriptionList = [wType for wType in self.mSubscriptionList if wType != iType]
@@ -94,7 +113,7 @@ class RTIFederate:
         self.sendMessage(wEventString.encode("utf8"))
 
     def processEvent(self, iEvent):
-        log("{}".format(json.dumps(iEvent)))
+        #log("{}".format(json.dumps(iEvent)))
         wTask = iEvent["task"]
         if "task" in iEvent:
             wTask = iEvent["task"]
@@ -110,8 +129,9 @@ class RTIFederate:
                 wType = iEvent["type"]
                 if type(wType) != str:
                     return
-                wData = iEvent["data"]
-                
-                if None != self.mEventCallback:
-                    self.mEventCallback(base64.b64decode(wData.encode("utf8")))
+                wData = base64.b64decode(iEvent["data"].encode("utf8"))
+
+                for wCallback in self.mEventCallbackList:
+                    if None != wCallback:
+                        wCallback(wType, wData)
                     

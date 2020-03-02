@@ -32,7 +32,6 @@ class RTIProcess:
         self.mEntryPointThread = None
         self.mLastEntryPointTime = None
 
-
     def startServer(self):
         if True == self.mStarted:
             return
@@ -71,7 +70,7 @@ class RTIProcess:
                     wProxy.mElapseTime += wDeltaTime
                   
             
-            for wItem in wDeleteList:
+            for wKey in wDeleteList:
                 wProxy = self.mParticipantList[wKey]
                 wAddressString = "{}:{}".format(*wProxy.mAddress)
                 log("Participant {} left".format(wAddressString))
@@ -106,7 +105,7 @@ class RTIProcess:
         self.mUDPServer.send(wEventString.encode("utf8"), iAddress)
 
     def processEvent(self, iEvent, iParticipant):
-        log("{} : {}".format(iParticipant, json.dumps(iEvent)))
+        #log("{} : {}".format(iParticipant, json.dumps(iEvent)))
         wTask = iEvent["task"]
         if "task" in iEvent:
             wTask = iEvent["task"]
@@ -114,7 +113,7 @@ class RTIProcess:
                 if "list" in iEvent:
                     wCurrentProxy = self.mParticipantList[iParticipant]
                     wCurrentProxy.setSubscriptionList(iEvent["list"])
-                    log("{}".format(wCurrentProxy.mSubscriptionList))
+                    log("Participant [{}] subsciptions {}".format(iParticipant, wCurrentProxy.mSubscriptionList))
             
             elif "transfer" == wTask:
                 if "type" not in iEvent:
