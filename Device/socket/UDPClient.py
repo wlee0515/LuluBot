@@ -4,8 +4,7 @@ import threading
 class UDPClient:
     def __init__(self, iAddress, iPort, iCallback):
         self.mServerAddress = (iAddress, int(iPort))
-        self.mSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.mSocket.settimeout(1)
+        self.mSocket = None
         self.mReceiveThread = None
         self.mCallback = iCallback
         self.mEndReceive = True
@@ -15,16 +14,22 @@ class UDPClient:
         if False == self.mRunning:
             return
         self.mRunning = False
-        self.mEndReceive = True
         if None != self.mReceiveThread:
+            self.mEndReceive = True
             self.mReceiveThread.join()
-            self.mReceiveThread = None 
-        self.mSocket.shutdown(socket.SHUT_RDWR)
-        self.mSocket.close()
-      
+            self.mReceiveThread = None
+
     def send(self, iMessage):
+        if None == self.mSocket:
+            if None != self.mReceiveThread:
+                self.mEndReceive = True
+                self.mReceiveThread.join()
+                self.mReceiveThread = None
+            self.mSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.mSocket.settimeout(1)
+
         try:
-            self.mSocket.sendto(iMessage.encode('utf8'), self.mServerAddress)
+            self.mSocket.sendto(iMessage, self.mServerAddress)
         except socket.timeout as e:
             return
 
@@ -42,4 +47,11 @@ class UDPClient:
                     self.mCallback(data)
             except socket.timeout as e:
                 pass
+            except socket.error as e:
+                break
 
+        self.mRunning = False
+        self.mSocket.shutdown(socket.SHUT_RDWR)
+        self.mSocket.close()
+        self.mSocket = None
+        self.mEndReceive = True

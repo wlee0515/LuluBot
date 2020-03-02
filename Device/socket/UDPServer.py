@@ -32,6 +32,12 @@ class UDPServer:
         self.mSocket.shutdown(socket.SHUT_RDWR)
         self.mSocket.close()
 
+    def send(self, iMessage, iAddress):
+        try:
+            self.mSocket.sendto(iMessage, iAddress)
+        except socket.timeout as e:
+            return
+
     def recv(self):
         self.mStarted = True
         while False == self.mEndReceive:
@@ -40,10 +46,7 @@ class UDPServer:
                 if None != self.mCallback:
                     wReply = self.mCallback(data, address)
                     if (None != wReply) and ("" != wReply):
-                        try:
-                            self.mSocket.sendto(wReply.encode('utf8'), address)
-                        except socket.timeout as e:
-                            pass
+                        self.send( wReply, address)
                         
             except socket.timeout as e:
                 pass

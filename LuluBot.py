@@ -10,7 +10,7 @@ def UDPCallBack(iMessage) :
 
 def main():
 
-    wUDPSocket = UDPClient("localhost", 10000, UDPCallBack)
+    wUDPSocket = UDPClient("localhost", 9000, UDPCallBack)
 
     wDevice = SSC03A("/dev/ttyAMA0", 1)
     time.sleep(1.0)
