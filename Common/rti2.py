@@ -138,7 +138,7 @@ class RTIFederate:
         self.mRunning = True
 
         while(self.mRunning):
-            self.mUDPClient.send("Ping")
+            self.sendEvent("Ping".encode("utf8"))
             time.sleep((gRti_Participant_TimeOut+1)/2)
 
         print("Entry point Exited")

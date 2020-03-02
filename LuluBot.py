@@ -6,7 +6,7 @@ import time
 
 def UDPCallBack(iMessage) :
     log(iMessage)
-    return "Yes?"
+    return "Yes?".encode("utf8")
 
 def main():
 
