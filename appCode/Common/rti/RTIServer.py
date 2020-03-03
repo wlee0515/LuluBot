@@ -23,7 +23,7 @@ class Participant_Proxy:
     def checkSubscription(self, iSubscribedType):
         return iSubscribedType in self.mSubscriptionList
 
-class RTIProcess:
+class RTIServer:
     def __init__(self):
         self.mUDPServer = UDPServer(getRtiServerPort(), self.message)
         self.mParticipantList = {}
@@ -131,3 +131,4 @@ class RTIProcess:
                     if wKey != iParticipant:
                         if wProxy.checkSubscription(wType):
                             self.mUDPServer.send(wEventString.encode("utf8"), wProxy.mAddress)
+

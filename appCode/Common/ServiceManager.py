@@ -7,11 +7,17 @@ def getServiceManager():
         gServiceManager = ServiceManager()
     return gServiceManager
 
+def initService_always(iService):
+    getServiceManager().addService(iService())
+    print("Service [{}] added".format(iService))
+
 def initService(iEnv, iValue, iService):
     if iEnv in os.environ:
         if os.environ[iEnv] == str(iValue):
             getServiceManager().addService(iService())
             print("Service [{}] added".format(iService))
+            return True
+    return False
 
 class Service():
     def __init__(self):

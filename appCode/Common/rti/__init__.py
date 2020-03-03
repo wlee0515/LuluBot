@@ -2,7 +2,7 @@ from .RTISetup import getRtiServerAddress
 from .RTISetup import getRtiServerPort
 from .RTISetup import getRtiParticipantTimeOut
 
-from .RTIProcess import RTIProcess
+from .RTIServer import RTIServer
 
 from .RTIFederate import RTIFederate
 from .RTIFederate import getRtiFederate

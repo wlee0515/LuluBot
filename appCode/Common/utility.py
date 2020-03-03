@@ -20,7 +20,7 @@ def loadYAML(iFileName):
     wFileHandler = open(iFileName, 'r')
     wJSONObj = None
     if 'r' == wFileHandler.mode:
-        wJSONObj = yaml.load(wFileHandler)
+        wJSONObj = yaml.load(wFileHandler, Loader=yaml.SafeLoader)
     wFileHandler.close()
     return wJSONObj
 

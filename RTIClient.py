@@ -7,21 +7,16 @@ def EventCallBack (iType, iEvent):
 #    print("Callback 1 Type[{}] data[{}]".format(iType, iEvent.decode("utf8")))
     pass
 
-def EventCallBack2 (iEvent):
- #   print("Callback 2 Type[{}] data[{}]".format(iType, iEvent.decode("utf8")))
-    pass
-
 def main():
-    wProcess = rti.getRtiFederate()
-    wManager = rti.RTIObjectManager("object",wProcess, 2)
+    wFederate = rti.getRtiFederate()
+    wObjManager = rti.RTIObjectManager("object",wFederate, 2)
     
     wServiceManager = ServiceManager.getServiceManager()
 
-    wProcess.startFederate()
-    wManager.startManager()
+    wFederate.startFederate()
+    wObjManager.startManager()
     wServiceManager.startService()
-    wProcess.subscribeToEventCallback(EventCallBack)
-    wProcess.subscribeToEventCallback(EventCallBack2)
+    wFederate.subscribeToEventCallback(EventCallBack)
 
     while True:
         wInput = input("Enter Command : ")
@@ -31,17 +26,17 @@ def main():
             wCmd =  wInput.split(" ")
             if 2 <= len(wCmd):
                 if "subscribe" == wCmd[0]:
-                    wProcess.subscribeToType(wCmd[1])
+                    wFederate.subscribeToType(wCmd[1])
                 elif "unsubscribe" == wCmd[0]:
-                    wProcess.unsubscribeFromType(wCmd[1])
+                    wFederate.unsubscribeFromType(wCmd[1])
                 elif "object" == wCmd[0]:
                     wNewObject = {}
                     wNewObject["Data"] = wCmd[2]
-                    wManager.setObject(wCmd[1],wNewObject)
+                    wObjManager.setObject(wCmd[1],wNewObject)
                     
                 elif "robject" == wCmd[0]:
                     wNewObject = {}
-                    wManager.removeObject(wCmd[1])
+                    wObjManager.removeObject(wCmd[1])
                     
                 elif "print" == wCmd[0]:
                     if "owned" == wCmd[1]:
@@ -51,13 +46,13 @@ def main():
                         print(wManager.mRemoteObjects)
                         
                 else:
-                    wProcess.sendData(wCmd[0], wCmd[1].encode("utf8"))
+                    wFederate.sendData(wCmd[0], wCmd[1].encode("utf8"))
     
     print("While Loop Exited")
     
     wServiceManager.stopService()
-    wManager.stopManager()
-    wProcess.stopFederate()
+    wObjManager.stopManager()
+    wFederate.stopFederate()
     print("Prcess Stopped")
 
 

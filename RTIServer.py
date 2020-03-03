@@ -1,7 +1,7 @@
-import Common.rti as rti
+import appCode.Common.rti as rti
 
 def main():
-    wProcess = rti.RTIProcess()
+    wProcess = rti.RTIServer()
     wProcess.startServer()
 
     while True:
