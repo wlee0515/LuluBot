@@ -1,2 +1,2 @@
-from .tabledef import User
-from .tabledef import Command
+#from .tabledef import User
+#from .tabledef import Command

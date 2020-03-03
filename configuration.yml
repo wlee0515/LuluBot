@@ -29,12 +29,18 @@ launch:
     A: F
   runParallel: true
   processList:
+  - Name: RTI Server
+    command:
+    - python
+    - RTIServer.py
+    env:
+      A: G
   - Name: LuluBot
     command:
     - python
-    - LuluBot.py
+    - RTIClient.py
     env:
-      A: G
+      LuluBot: true
   - Name: WebServer
     command:
     - python
