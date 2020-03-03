@@ -1,6 +1,9 @@
 import time, threading, json
-from .RTIFederate import RTIFederate
 import base64
+import uuid 
+
+from appCode.Common.utility import log
+from .RTIFederate import RTIFederate
 
 class RTIObject:
     def __int__(self):
@@ -19,6 +22,7 @@ class RTIObjectManager():
         self.mStarted = False
         self.mRunning = False
         self.mObjectTimeOut = iTimeOut
+        self.mManagerId = uuid.uuid1()
         if self.mObjectTimeOut < 1.0:
             self.mObjectTimeOut = 1.0
 
@@ -75,7 +79,8 @@ class RTIObjectManager():
 
         log("Entry point Exited")
 
-
+    def getObjectPublishedId(self, iObjectId):
+        return "{}-{}".format(self.mManagerId , iObjectId)
 
     def processEventCallback(self, iType, iData):
         if iType == self.mRtiType:
@@ -100,26 +105,26 @@ class RTIObjectManager():
                     
                 wRemoteObject.mObject = wObject
                 wRemoteObject.mElapseTime = 0
-            
 
     def sendObject(self, iObjectId):
-        if iObjectId in self.mOwnedObjects:
-            wObject = self.mOwnedObjects[iObjectId]
+        wObjectId = self.getObjectPublishedId(iObjectId)
+        if wObjectId in self.mOwnedObjects:
+            wObject = self.mOwnedObjects[wObjectId]
             wObject.time = 0
             wMessage = {}
-            wMessage["id"] = iObjectId
+            wMessage["id"] = wObjectId
             wMessage["object"] = base64.b64encode(wObject.mObject.encode("utf8")).decode("utf8")
             self.mFederateRef.sendData(self.mRtiType, json.dumps(wMessage).encode("utf8"))
-      
+
     def setObject(self, iObjectId, iObject):
-      
+        wObjectId = self.getObjectPublishedId(iObjectId)
         wData = json.dumps(iObject)
         wSetObject = None
-        if iObjectId not in self.mOwnedObjects:                
+        if wObjectId not in self.mOwnedObjects:                
             wSetObject = RTIObject()
-            self.mOwnedObjects[iObjectId] = wSetObject
+            self.mOwnedObjects[wObjectId] = wSetObject
         else:
-            wSetObject = self.mOwnedObjects[iObjectId] 
+            wSetObject = self.mOwnedObjects[wObjectId] 
             
         wSetObject.mObject = wData
         wSetObject.mElapseTime = self.mObjectTimeOut
@@ -127,12 +132,14 @@ class RTIObjectManager():
 
 
     def getObject(self, iObjectId):
-        if iObjectId in self.mOwnedObjects:
-            return json.loads(self.mOwnedObjects[iObjectId])
+        wObjectId = self.getObjectPublishedId(iObjectId)
+        if wObjectId in self.mOwnedObjects:
+            return json.loads(self.mOwnedObjects[wObjectId])
         if iObjectId in self.mRemoteObjects:
-            return json.loads(self.mRemoteObjects[iObjectId].object)
+            return json.loads(self.mRemoteObjects[wObjectId].object)
         return None
         
     def removeObject(self, iObjectId):
-        if iObjectId in self.mOwnedObjects:
-            del self.mOwnedObjects[iObjectId]
+        wObjectId = self.getObjectPublishedId(iObjectId)
+        if wObjectId in self.mOwnedObjects:
+            del self.mOwnedObjects[wObjectId]

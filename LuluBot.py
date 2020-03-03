@@ -1,6 +1,6 @@
-from Common.utility import log, taggedInput
-from Device.pololu import SSC03A
-from Device.socket import UDPClient
+from appCode.Common.utility import log, taggedInput
+from appCode.Device.pololu import SSC03A
+from appCode.Device.socket import UDPClient
 
 import time
 

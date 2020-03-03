@@ -14,8 +14,8 @@ from sqlalchemy.orm import sessionmaker
 from appCode import *
 engine = create_engine('sqlite:///ctrlcenter.db', echo=True)
 
-from Device.socket import UDPServer
-from Common.utility import log
+from appCode.Device.socket import UDPServer
+from appCode.Common.utility import log
 
 app= Flask(__name__)
 socketIO = SocketIO(app)

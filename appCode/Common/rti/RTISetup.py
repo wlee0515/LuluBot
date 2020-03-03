@@ -1,5 +1,5 @@
 import os
-from Common.utility import log
+from appCode.Common.utility import log
 
 gRti_Server_Address = "localhost"
 gRti_Server_Port = 9000

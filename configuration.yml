@@ -1,3 +1,4 @@
+# Launcher.py configuration file.
 startPhase: prelaunch
 phaseCountlimit: 10
 env:

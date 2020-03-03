@@ -1,7 +1,7 @@
 import time, threading
 import json
-from Device.socket import UDPServer
-from Common.utility import log
+from appCode.Device.socket import UDPServer
+from appCode.Common.utility import log
 from .RTISetup import getRtiParticipantTimeOut, getRtiServerPort
 
 class Participant_Proxy:

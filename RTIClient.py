@@ -1,5 +1,7 @@
-import Common.rti as rti
+import appCode.Common.rti as rti
 import json
+import appCode.Service
+import appCode.Common.ServiceManager as ServiceManager
 
 def EventCallBack (iType, iEvent):
 #    print("Callback 1 Type[{}] data[{}]".format(iType, iEvent.decode("utf8")))
@@ -12,9 +14,12 @@ def EventCallBack2 (iEvent):
 def main():
     wProcess = rti.getRtiFederate()
     wManager = rti.RTIObjectManager("object",wProcess, 2)
+    
+    wServiceManager = ServiceManager.getServiceManager()
 
     wProcess.startFederate()
     wManager.startManager()
+    wServiceManager.startService()
     wProcess.subscribeToEventCallback(EventCallBack)
     wProcess.subscribeToEventCallback(EventCallBack2)
 
@@ -49,6 +54,8 @@ def main():
                     wProcess.sendData(wCmd[0], wCmd[1].encode("utf8"))
     
     print("While Loop Exited")
+    
+    wServiceManager.stopService()
     wManager.stopManager()
     wProcess.stopFederate()
     print("Prcess Stopped")

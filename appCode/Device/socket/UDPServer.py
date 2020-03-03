@@ -1,6 +1,6 @@
 import socket
 import threading 
-from Common.utility import log
+from appCode.Common.utility import log
 
 class UDPServer:
     def __init__(self, iPort, iCallback):

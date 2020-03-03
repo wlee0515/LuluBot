@@ -1,5 +1,5 @@
 import os, sys, subprocess, threading
-from Common.utility import log, loadJSON, loadYAML
+from appCode.Common.utility import log, loadJSON, loadYAML
 import json
 
 def setEvironmentVariables(oList, iSetting):

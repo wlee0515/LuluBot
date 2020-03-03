@@ -1,6 +1,6 @@
 import time, threading, json
-from Device.socket import UDPClient
-from Common.utility import log
+from appCode.Device.socket import UDPClient
+from appCode.Common.utility import log
 from .RTISetup import getRtiParticipantTimeOut, getRtiServerAddress, getRtiServerPort
 import base64
 import atexit
