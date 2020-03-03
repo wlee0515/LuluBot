@@ -31,7 +31,7 @@ def main():
     wInput = ""
     while("exit" != wInput) :
         wInput = taggedInput("Enter Command : ")
-        wUDPSocket.send(wInput)
+        wUDPSocket.send(wInput.encode("utf8"))
     wUDPSocket.stopSocket()
 
     

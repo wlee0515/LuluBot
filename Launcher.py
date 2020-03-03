@@ -1,43 +1,64 @@
 import os, sys, subprocess, threading
-from Common.utility import log, loadJSON
+from Common.utility import log, loadJSON, loadYAML
 import json
 
+def setEvironmentVariables(oList, iSetting):
+    for wkey, wVar in iSetting.items():
+        oList[wkey] = "{}".format(wVar)
+    
 def launchProcess(iProcess):
-    log("Received Process : {}".format(iProcess))
-    wProcess = []
-    for wArg in iProcess:
+
+    wCmd = []
+    if "command" in iProcess:
+        wCmd = iProcess["command"]
+    
+    wProcess_env = os.environ.copy()
+    if "env" in iProcess:
+        wEnv = iProcess["env"]
+        setEvironmentVariables(wProcess_env, wEnv)
+    
+    wName = "{}".format(wCmd)
+    if "Name" in iProcess:
+        wName = iProcess["Name"]
+        wProcess_env["ProcessName"] = wName
+
+    log("Start Process : {}".format(wName))
+    wSentCmd = []
+    for wArg in wCmd:
         if "python" == wArg:
             if os.name == 'nt':
-                wProcess.append("python")
+                wSentCmd.append("python")
             else:
-                wProcess.append("python3")
+                wSentCmd.append("python3")
         else:
-            wProcess.append(wArg)
+            wSentCmd.append(wArg)
 
-    log("Launching Process : {}".format(wProcess))
+    log("Set cmd : {}".format(wCmd))
+    log("Launching cmd : {}".format(wSentCmd))
+    log("Environement : {}".format(wProcess_env))
     
-    process = subprocess.Popen(wProcess, universal_newlines=True)
-
-    while None == process.poll():
-        try:
-            outs, errs = process.communicate()
-            if None != outs:
-                log(outs)
-            if None != errs:
-                log(errs)            
-        except TimeoutExpired:
-            pass
-
+    if 0 != len(wSentCmd):
+        process = subprocess.Popen(wCmd, env=wProcess_env, universal_newlines=True)
     
+        while None == process.poll():
+            try:
+                outs, errs = process.communicate()
+                if None != outs:
+                    log(outs)
+                if None != errs:
+                    log(errs)            
+            except TimeoutExpired:
+                pass
 
-    log("Process End : {}".format(wProcess))
+    log("End Process : {}".format(wName))
 
 def main():
 
     wLauncherFileName = ""
-    wConfigFileName = "configuration.json"
+    wConfigFileName = "configuration.yml"
     wPhase = ""
     wPhaseCount = -1
+    wCleanEnv = os.environ.copy()
     
     log("Session Arguments:")
     for i in range(0, len(sys.argv)):
@@ -53,7 +74,17 @@ def main():
 
     log("Current Launch File [{}]".format(wLauncherFileName))
     log("Loading Configuration File [{}]".format(wConfigFileName))
-    wConfigFile = loadJSON(wConfigFileName)
+
+    wConfigFile = None
+    if wConfigFileName.lower().endswith('.json'):
+        wConfigFile = loadJSON(wConfigFileName)
+
+    elif wConfigFileName.lower().endswith('.yml'):
+        wConfigFile = loadYAML(wConfigFileName)
+    else:
+        log("Configuration File type not supported. Supported file types are .json and .yml")
+        return
+
     if None == wConfigFile:
         log("Unable to load Configuration File")
         return
@@ -68,17 +99,6 @@ def main():
         else:
             wPhase = wConfigFile["startPhase"]
     
-    log("Retrieving Current Phase Settings")
-    
-    if None == wConfigFile[wPhase]:
-        log("Current phase, \"{}\" is not defined".format(wPhase))
-        return
-    
-    wPhaseSetting = wConfigFile[wPhase]
-    
-    log("Current phase, \"{}\" definition :".format(wPhase))
-    log(json.dumps(wPhaseSetting, indent=2))
-    
     if 0 > wPhaseCount:
         log("Phase Count not set or badly defined. Setting phase count to 0")
         wPhaseCount = 0
@@ -92,6 +112,24 @@ def main():
             log("\"phaseCountlimit\" limit exceeded")
             return
     
+    if "env" in wConfigFile:
+        wEnv = wConfigFile["env"]
+        setEvironmentVariables(os.environ, wEnv)
+    
+    log("Retrieving Current Phase Settings")
+    if None == wConfigFile[wPhase]:
+        log("Current phase, \"{}\" is not defined".format(wPhase))
+        return
+    
+    wPhaseSetting = wConfigFile[wPhase]
+    
+    log("Current phase, \"{}\" definition :".format(wPhase))
+    log(json.dumps(wPhaseSetting, indent=2))
+    
+    if "env" in wPhaseSetting:
+        wEnv = wPhaseSetting["env"]
+        setEvironmentVariables(os.environ, wEnv)
+
     if "processList" in wPhaseSetting:
         log("Processing \"processList\"")
 
@@ -124,9 +162,16 @@ def main():
             for wProcessThread in wThreadList:
                 wProcessThread.join()
                                     
+
+
     if "nextPhase" in wPhaseSetting:
+        os.environ.clear()
+        os.environ.update(wCleanEnv)
         log("Starting \"nextPhase\" : \"{}\"".format(wPhaseSetting["nextPhase"]))
-        launchProcess(["python", wLauncherFileName, wConfigFileName, wPhaseSetting["nextPhase"], str(wPhaseCount+1) ])
+        wNextPhase = {}
+        wNextPhase["Name"] = wPhaseSetting["nextPhase"]
+        wNextPhase["command"] = ["python", wLauncherFileName, wConfigFileName, wPhaseSetting["nextPhase"], str(wPhaseCount+1) ]
+        launchProcess(wNextPhase)
     return
 
 

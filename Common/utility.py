@@ -24,8 +24,18 @@ def loadYAML(iFileName):
     wFileHandler.close()
     return wJSONObj
 
+gProcessName = None
+def getProcessName():
+    global gProcessName
+    if None == gProcessName:
+        if "ProcessName" in os.environ:
+            gProcessName = os.environ["ProcessName"]
+        else:
+            gProcessName = os.path.basename(sys.argv[0])
+    return gProcessName
+
 def log(iLog):
-    print("[{}] {}".format(os.path.basename(sys.argv[0]), iLog))
+    print("[{}] {}".format(getProcessName(), iLog))
 
 def taggedInput(iMessage):
-    return input("[{}] {}".format(os.path.basename(sys.argv[0]), iMessage))
+    return input("[{}] {}".format(getProcessName(), iMessage))

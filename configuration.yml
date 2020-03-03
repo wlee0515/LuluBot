@@ -1,0 +1,42 @@
+startPhase: prelaunch
+phaseCountlimit: 10
+env:
+  A: B
+prelaunch:
+  env:
+    A: C
+  processList:
+  - Name: git pull
+    command:
+    - git
+    - pull
+    env:
+      A: D
+  - Name: pip intall
+    command:
+    - python
+    - "-m"
+    - pip
+    - install
+    - "-r"
+    - "./requirements.txt"
+    env:
+      A: E
+  nextPhase: launch
+launch:
+  env:
+    A: F
+  runParallel: true
+  processList:
+  - Name: LuluBot
+    command:
+    - python
+    - LuluBot.py
+    env:
+      A: G
+  - Name: WebServer
+    command:
+    - python
+    - webserver.py
+    env:
+      A: H
