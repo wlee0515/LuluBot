@@ -1,9 +1,9 @@
 import time, threading, json
 from appCode.Device.socket import UDPClient
 from appCode.Common.utility import log
-from .RTISetup import getRtiParticipantTimeOut, getRtiServerAddress, getRtiServerPort
+from .RTISetup import getRtiParticipantTimeOut, getRtiServerHash, getRtiServerAddress, getRtiServerPort, getRtiDebugMode
 import base64
-import atexit
+import uuid 
 
 gRTIFederate = None
 def getRtiFederate():
@@ -25,6 +25,7 @@ class RTIFederate:
         self.mLastMessageTime = 0
         self.mSubscriptionList = []
         self.mUpdateSubsciption = False
+        self.mSelfId = hash(uuid.uuid1())
 
     def subscribeToEventCallback(self, iCallback):
         if iCallback not in self.mEventCallbackList:
@@ -68,9 +69,12 @@ class RTIFederate:
                     self.sendMessage("ping".encode("utf8"))
             time.sleep(wCheckTime)
 
-        log("Entry point Exited")
+        log("RTI Federate Entry point Exited")
 
     def sendMessage(self, iEvent):
+        
+        if getRtiDebugMode():
+            log("Sending : {}".format(iEvent))
         self.mUDPClient.send(iEvent)
         self.mLastMessageTime = time.time()
 
@@ -108,30 +112,55 @@ class RTIFederate:
         wEvent = {}
         wEvent["task"] = "transfer"
         wEvent["type"] = iType
+        wEvent["id"] = self.mSelfId
         wEvent["data"] = base64.b64encode(iData).decode("utf8")
         wEventString = json.dumps(wEvent)
         self.sendMessage(wEventString.encode("utf8"))
 
     def processEvent(self, iEvent):
-        #log("{}".format(json.dumps(iEvent)))
-        wTask = iEvent["task"]
+        if getRtiDebugMode():
+            log("processing Event : {}".format(json.dumps(iEvent)))
+
+        if "source" not in iEvent:
+            return
+
+        wSource = iEvent["source"]
+        if type(wSource) != int:
+            return
+            
         if "task" in iEvent:
+                    
             wTask = iEvent["task"]
             if "subscribe" == wTask:
-                self.sendUpdateSubsciptionEvent()
+                print("{}  == {}".format(wSource, getRtiServerHash()))
+                if wSource == getRtiServerHash():
+                    self.sendUpdateSubsciptionEvent()
             
             elif "transfer" == wTask:
+
                 if "type" not in iEvent:
                     return
+
                 if "data" not in iEvent:
                     return
-                 
+
+                if "id" not in iEvent:
+                    return
+
+                print("transfer checked")
+                wId = iEvent["id"]
+                if type(wId) != int:
+                    return
+
                 wType = iEvent["type"]
                 if type(wType) != str:
                     return
+                    
                 wData = base64.b64decode(iEvent["data"].encode("utf8"))
 
                 for wCallback in self.mEventCallbackList:
                     if None != wCallback:
-                        wCallback(wType, wData)
-                    
+                        wCallback(wId , wType, wData)
+    
+    def checkSelfId(self, iId):
+        return self.mSelfId == iId

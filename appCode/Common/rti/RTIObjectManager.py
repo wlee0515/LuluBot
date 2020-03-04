@@ -13,6 +13,9 @@ class RTIObject:
     def default(self, o):
         return o.__dict__    
 
+    def __repr__(self):
+        return 'Time : {} Object : {}'.format(self.mElapseTime, self.mObject)
+
 class RTIObjectManager():
     def __init__(self, iRtiType, iRTIFederate, iTimeOut):
         self.mFederateRef = iRTIFederate
@@ -53,7 +56,7 @@ class RTIObjectManager():
         wTimeOut = self.mObjectTimeOut
         wSleepTime =(wTimeOut+1)/10
         wLastTime = time.time()
-        wSendTime =wTimeOut - wSleepTime
+        wSendTime = wTimeOut - wSleepTime
 
         while(self.mRunning):
             wCurrentTime = time.time()
@@ -61,7 +64,7 @@ class RTIObjectManager():
             for wId, wObject in self.mOwnedObjects.items():
                 if wObject.mElapseTime > wSendTime:
                     self.sendObject(wId)
-                else:            
+                else:
                     wObject.mElapseTime += wDeltaTime
                   
             wDeleteList = []
@@ -77,23 +80,22 @@ class RTIObjectManager():
             wLastTime = wCurrentTime
             time.sleep(wSleepTime)
 
-        log("Entry point Exited")
+        log("RTI Object Manager Entry point Exited")
 
-    def getObjectPublishedId(self, iObjectId):
-        return "{}-{}".format(self.mManagerId , iObjectId)
-
-    def processEventCallback(self, iType, iData):
+    def processEventCallback(self, iSourceId, iType, iData):
         if iType == self.mRtiType:
             wDecoded = iData.decode("utf8")
             wMessage = json.loads(wDecoded)
             if "id" not in wMessage:
                 return
+
             if "object" not in wMessage:
                 return
-            wId =  wMessage["id"]
+            wId =  "{}-{}".format(iSourceId,wMessage["id"] )
 
             wObject = base64.b64decode(wMessage["object"].encode("utf8"))
-            if wId in self.mOwnedObjects:
+            if self.mFederateRef.checkSelfId(iSourceId):
+                print ("Object is owned")
                 pass
             else:
                 wRemoteObject = None
@@ -107,24 +109,21 @@ class RTIObjectManager():
                 wRemoteObject.mElapseTime = 0
 
     def sendObject(self, iObjectId):
-        wObjectId = self.getObjectPublishedId(iObjectId)
-        if wObjectId in self.mOwnedObjects:
-            wObject = self.mOwnedObjects[wObjectId]
-            wObject.time = 0
-            wMessage = {}
-            wMessage["id"] = wObjectId
-            wMessage["object"] = base64.b64encode(wObject.mObject.encode("utf8")).decode("utf8")
-            self.mFederateRef.sendData(self.mRtiType, json.dumps(wMessage).encode("utf8"))
+        wObject = self.mOwnedObjects[iObjectId]
+        wObject.time = 0
+        wMessage = {}
+        wMessage["id"] = iObjectId
+        wMessage["object"] = base64.b64encode(wObject.mObject.encode("utf8")).decode("utf8")
+        self.mFederateRef.sendData(self.mRtiType, json.dumps(wMessage).encode("utf8"))
 
     def setObject(self, iObjectId, iObject):
-        wObjectId = self.getObjectPublishedId(iObjectId)
         wData = json.dumps(iObject)
         wSetObject = None
-        if wObjectId not in self.mOwnedObjects:                
+        if iObjectId not in self.mOwnedObjects:                
             wSetObject = RTIObject()
-            self.mOwnedObjects[wObjectId] = wSetObject
+            self.mOwnedObjects[iObjectId] = wSetObject
         else:
-            wSetObject = self.mOwnedObjects[wObjectId] 
+            wSetObject = self.mOwnedObjects[iObjectId] 
             
         wSetObject.mObject = wData
         wSetObject.mElapseTime = self.mObjectTimeOut
@@ -132,14 +131,12 @@ class RTIObjectManager():
 
 
     def getObject(self, iObjectId):
-        wObjectId = self.getObjectPublishedId(iObjectId)
-        if wObjectId in self.mOwnedObjects:
-            return json.loads(self.mOwnedObjects[wObjectId])
+        if iObjectId in self.mOwnedObjects:
+            return json.loads(self.mOwnedObjects[iObjectId])
         if iObjectId in self.mRemoteObjects:
-            return json.loads(self.mRemoteObjects[wObjectId].object)
+            return json.loads(self.mRemoteObjects[iObjectId].object)
         return None
         
     def removeObject(self, iObjectId):
-        wObjectId = self.getObjectPublishedId(iObjectId)
-        if wObjectId in self.mOwnedObjects:
-            del self.mOwnedObjects[wObjectId]
+        if iObjectId in self.mOwnedObjects:
+            del self.mOwnedObjects[iObjectId]

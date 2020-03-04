@@ -10,7 +10,6 @@ def EventCallBack (iType, iEvent):
 def main():
     wFederate = rti.getRtiFederate()
     wObjManager = rti.RTIObjectManager("object",wFederate, 2)
-    
     wServiceManager = ServiceManager.getServiceManager()
 
     wFederate.startFederate()
@@ -40,10 +39,10 @@ def main():
                     
                 elif "print" == wCmd[0]:
                     if "owned" == wCmd[1]:
-                        print(wManager.mOwnedObjects)
+                        print(wObjManager.mOwnedObjects)
                         
                     elif "remote" == wCmd[1]:
-                        print(wManager.mRemoteObjects)
+                        print(wObjManager.mRemoteObjects)
                         
                 else:
                     wFederate.sendData(wCmd[0], wCmd[1].encode("utf8"))

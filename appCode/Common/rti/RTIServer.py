@@ -2,7 +2,7 @@ import time, threading
 import json
 from appCode.Device.socket import UDPServer
 from appCode.Common.utility import log
-from .RTISetup import getRtiParticipantTimeOut, getRtiServerPort
+from .RTISetup import getRtiParticipantTimeOut, getRtiServerHash, getRtiHashAddress, getRtiServerPort, getRtiDebugMode
 
 class Participant_Proxy:
     def __init__(self, iAddress):
@@ -31,6 +31,7 @@ class RTIServer:
         self.mRunning = False
         self.mEntryPointThread = None
         self.mLastEntryPointTime = None
+        self.mServerHash = getRtiServerHash()
 
     def startServer(self):
         if True == self.mStarted:
@@ -79,33 +80,36 @@ class RTIServer:
             wLastTime = wCurrentTime
             time.sleep(wSleepTime)
 
-        log("Entry point Exited")
+        log("RTI Server Entry point Exited")
 
 
     def message(self, iMessage, iAddress):
         wAddressString = "{}:{}".format(*iAddress)
-        if wAddressString not in self.mParticipantList.keys():
+        wKey = getRtiHashAddress(*iAddress)
+        if wKey not in self.mParticipantList.keys():
             wNewParticipant = Participant_Proxy(iAddress)
-            self.mParticipantList[wAddressString] = wNewParticipant
+            self.mParticipantList[wKey] = wNewParticipant
             log("Participant {} joined".format(wAddressString))
             self.sendUpdateSubsciptionEvent(iAddress)
 
-        self.mParticipantList[wAddressString].mElapseTime = 0
+        self.mParticipantList[wKey].mElapseTime = 0
         
         try:
             wEvent = json.loads(iMessage.decode("utf8"))
-            self.processEvent(wEvent, wAddressString)
+            self.processEvent(wEvent, wKey)
         except:
             pass
 
     def sendUpdateSubsciptionEvent(self, iAddress):
         wEvent = {}
         wEvent["task"] = "subscribe"
+        wEvent["source"] = self.mServerHash
         wEventString = json.dumps(wEvent)
         self.mUDPServer.send(wEventString.encode("utf8"), iAddress)
 
     def processEvent(self, iEvent, iParticipant):
-        #log("{} : {}".format(iParticipant, json.dumps(iEvent)))
+        if getRtiDebugMode():
+            log("process Event : {} : {}".format(iParticipant, json.dumps(iEvent)))
         wTask = iEvent["task"]
         if "task" in iEvent:
             wTask = iEvent["task"]
@@ -125,6 +129,7 @@ class RTIServer:
                 if type(wType) != str:
                     return
                     
+                iEvent["source"] = iParticipant
                 wEventString = json.dumps(iEvent)
                 
                 for wKey, wProxy in self.mParticipantList.items():
