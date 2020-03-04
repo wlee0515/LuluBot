@@ -40,19 +40,23 @@ def iterationFunction(iContext):
                 rti.getRTIObjectManager("object").removeObject(wCmd[1])
 
             elif "print" == wCmd[0]:
-                if "local" == wCmd[1]:
+                if "local" == wCmd[1]:                    
                     if 3 <= len(wCmd):
-                        wObject = rti.getRTIObjectManager("object").getLocalObject(wCmd[2])
-                        pp.pprint(wObject)
-                    else:
-                        pp.pprint(rti.getRTIObjectManager("object").mOwnedObjects)
+                        wType = wCmd[2]
+                        if 4 <= len(wCmd):
+                            wObject = rti.getRTIObjectManager(wType).getLocalObject(wCmd[3])
+                            pp.pprint(wObject)
+                        else:
+                            pp.pprint(rti.getRTIObjectManager(wType).mOwnedObjects)
 
                 elif "remote" == wCmd[1]:
                     if 3 <= len(wCmd):
-                        wObject = rti.getRTIObjectManager("object").getRemoteObject(wCmd[2])
-                        pp.pprint(wObject)
-                    else:
-                        pp.pprint(rti.getRTIObjectManager("object").mRemoteObjects)
+                        wType = wCmd[2]
+                        if 4 <= len(wCmd):
+                            wObject = rti.getRTIObjectManager(wType).getRemoteObject(wCmd[3])
+                            pp.pprint(wObject)
+                        else:
+                            pp.pprint(rti.getRTIObjectManager(wType).mRemoteObjects)
                     
 
 

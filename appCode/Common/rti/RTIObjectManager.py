@@ -29,6 +29,10 @@ class RTIObjectManager():
         self.mManagerId = uuid.uuid1()
         if self.mObjectTimeOut < 1.0:
             self.mObjectTimeOut = 1.0
+        self.mLocalObjectEnterCallback = []
+        self.mLocalObjectLeaveCallback = []
+        self.mRemoteObjectEnterCallback = []
+        self.mRemoteObjectLeaveCallback = []
 
     def startManager(self):
         if True == self.mStarted:
@@ -78,6 +82,12 @@ class RTIObjectManager():
             
             for wKey in wDeleteList:
                 wRObjectList = self.mRemoteObjects[wKey[0]]
+                
+                wJSONObject = json.loads(wRObjectList[wKey[1]].mObject)
+                for wCallback in self.mRemoteObjectLeaveCallback:
+                    if None != wCallback:
+                        wCallback( self.mRtiType, 0, wKey[1], wKey[0], wJSONObject)
+
                 del wRObjectList[wKey[1]]
                 if 0 == len(wRObjectList.items()):
                     del self.mRemoteObjects[wKey[0]]
@@ -103,21 +113,31 @@ class RTIObjectManager():
                 print ("Object is owned")
                 pass
             else:
+                wObjectCreated = False
                 wRemoteObject = None
                 if wId not in self.mRemoteObjects:                
                     wRemoteObject = RTIObject()
+                    wObjectCreated = True
                     self.mRemoteObjects[wId] = {}
                     self.mRemoteObjects[wId][iFederateId] = wRemoteObject
                 else:
                     wRemoteObjectList = self.mRemoteObjects[wId] 
                     if iFederateId not in wRemoteObjectList:
                         wRemoteObject = RTIObject()
+                        wObjectCreated = True
                         wRemoteObjectList[iFederateId] = wRemoteObject
                     else:
                         wRemoteObject = wRemoteObjectList[iFederateId]
                     
                 wRemoteObject.mObject = wObject
                 wRemoteObject.mElapseTime = 0
+
+                if True == wObjectCreated:
+                    wJSONObject = json.loads(wObject)
+                    for wCallback in self.mRemoteObjectEnterCallback:
+                        if None != wCallback:
+                            wCallback( self.mRtiType, iSource, iFederateId, wId, wJSONObject)
+
 
     def sendObject(self, iObjectId):
         wObject = self.mOwnedObjects[iObjectId]
@@ -140,6 +160,10 @@ class RTIObjectManager():
         wSetObject.mElapseTime = self.mObjectTimeOut
         self.sendObject(iObjectId)
 
+        wJSONObject = json.loads(wData)
+        for wCallback in self.mLocalObjectEnterCallback:
+            if None != wCallback:
+                wCallback( self.mRtiType, 0, self.mFederateRef.mSelfId, iObjectId, wJSONObject)
 
     def getLocalObject(self, iObjectId):
         if iObjectId in self.mOwnedObjects:
@@ -156,7 +180,41 @@ class RTIObjectManager():
 
     def removeObject(self, iObjectId):
         if iObjectId in self.mOwnedObjects:
+            wObject = self.mOwnedObjects[iObjectId]
+            wJSONObject = json.loads(wObject.mObject)
+            for wCallback in self.mLocalObjectLeaveCallback:
+                if None != wCallback:
+                    wCallback( self.mRtiType, 0, self.mFederateRef.mSelfId, iObjectId, wJSONObject)
             del self.mOwnedObjects[iObjectId]
+
+    def subscribeRemoteObjectEnter(self, iCallback):
+        if iCallback not in  self.mRemoteObjectEnterCallback:
+            self.mRemoteObjectEnterCallback.append(iCallback)
+    
+    def unsubscribeRemoteObjectEnter(self, iCallback):
+        self.mRemoteObjectEnterCallback = [wCallback for wCallback in self.mRemoteObjectEnterCallback if wCallback != iCallback]
+
+    def subscribeRemoteObjectLeave(self,iCallback):
+        if iCallback not in  self.mRemoteObjectLeaveCallback:
+            self.mRemoteObjectLeaveCallback.append(iCallback)
+
+    def unsubscribeRemoteObjectLeave(self, iCallback):
+        self.mRemoteObjectLeaveCallback = [wCallback for wCallback in self.mRemoteObjectLeaveCallback if wCallback != iCallback]
+        
+    def subscribeLocalObjectEnter(self, iCallback):
+        if iCallback not in  self.mLocalObjectEnterCallback:
+            self.mLocalObjectEnterCallback.append(iCallback)
+
+    def unsubscribeLocalObjectEnter(self, iCallback):
+        self.mLocalObjectEnterCallback = [wCallback for wCallback in self.mLocalObjectEnterCallback if wCallback != iCallback]
+
+    def subscribeLocalObjectLeave(self, iCallback):
+        if iCallback not in  self.mLocalObjectLeaveCallback:
+            self.mLocalObjectLeaveCallback.append(iCallback)
+
+    def unsubscribeLocalObjectLeave(self, iCallback):
+        self.mLocalObjectLeaveCallback = [wCallback for wCallback in self.mLocalObjectLeaveCallback if wCallback != iCallback]
+
 
 gRTIObjectManagerDatabase = {}
 def getRTIObjectManager(iObjectType):

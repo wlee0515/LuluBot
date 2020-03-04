@@ -2,15 +2,18 @@ import os, sys, threading, time
 from .RTIObjectManager import RTIObjectManager, getRTIObjectManager, stopAllRTIObjectManager
 from .RTIFederate import getRtiFederate, stopRtiFederate
 from .RTIServer import RTIServer
-
-class RTIProcessStatus:
-    def __init__(self):
-        self.mProcessName = ""
-        self.mProcessMode = "NA"
+from appCode.Common.utility import getProcessName, getStartTime
 
 class RTIProcessControl:
     def __init__(self, iProcessStartFunction, iProcessIterationFunction,  iProcessStopFunction):
-        self.mProcessStatus = RTIProcessStatus()
+        self.mProcessStatus = {}
+        self.mProcessStatus["Name"] = getProcessName()
+        self.mProcessStatus["StartTime"] = getStartTime()
+        self.mProcessStatus["IsHost"] = False
+
+        if "=host" in sys.argv:
+            self.mProcessStatus["IsHost"] = True
+
         self.mProcessStartFunction = iProcessStartFunction
         self.mProcessIterationFunction = iProcessIterationFunction
         self.mProcessStopFunction = iProcessStopFunction
@@ -19,6 +22,18 @@ class RTIProcessControl:
         self.mEnd = False
         self.mMonitorThread = None
         self.mIsHost = "-rtiProcCtrlHost" in sys.argv 
+        
+
+    def setProcessPhase(self, iPhase):
+        wObjectManager = getRTIObjectManager("process_state")
+        self.mProcessStatus["phase"] = "{}".format(iPhase)
+        wObjectManager.setObject("status", self.mProcessStatus)
+        
+    def processStatusObjectEnter(self, iType, iSourceId, iFerderateId, iObjectId, iObject):
+        print("Enter {}-{}-{}-{}-{}".format(iType, iSourceId, iFerderateId, iObjectId, iObject))
+
+    def processStatusObjectLeave(self, iType, iSourceId, iFerderateId, iObjectId, iObject):
+        print("Exit {}-{}-{}-{}-{}".format(iType, iSourceId, iFerderateId, iObjectId, iObject))
 
     def endProcess(self):
         self.mEnd = True
@@ -54,8 +69,15 @@ class RTIProcessControl:
         else:
             wTimeStep = 1/iFrequency
 
+        self.setProcessPhase("starting")
         self.mMonitorThread = threading.Thread(target= self.__MonitorThread__, args=(wTimeStep,)) 
         self.mMonitorThread.start()
+
+        wObjectManager = getRTIObjectManager("process_state")
+        wObjectManager.subscribeLocalObjectEnter(self.processStatusObjectEnter)
+        wObjectManager.subscribeRemoteObjectEnter(self.processStatusObjectEnter)
+        wObjectManager.subscribeLocalObjectLeave(self.processStatusObjectLeave)
+        wObjectManager.subscribeRemoteObjectLeave(self.processStatusObjectLeave)
 
         wRTIServer = None
         if "-server" in sys.argv:
@@ -64,6 +86,8 @@ class RTIProcessControl:
 
         if None != self.mProcessStartFunction:
             self.mProcessStartFunction(iContext)
+
+        self.setProcessPhase("running")
 
         if wOneShotProcess:
             self.__selfIteration__(iContext)
@@ -75,6 +99,13 @@ class RTIProcessControl:
 
         if None != self.mProcessStopFunction:
             self.mProcessStopFunction(iContext)
+
+        self.setProcessPhase("stopping")
+
+        wObjectManager.unsubscribeLocalObjectEnter(self.processStatusObjectEnter)
+        wObjectManager.unsubscribeRemoteObjectEnter(self.processStatusObjectEnter)
+        wObjectManager.unsubscribeLocalObjectLeave(self.processStatusObjectLeave)
+        wObjectManager.unsubscribeRemoteObjectLeave(self.processStatusObjectLeave)
 
         stopAllRTIObjectManager()
         stopRtiFederate()

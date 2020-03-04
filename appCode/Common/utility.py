@@ -1,5 +1,6 @@
 import os, sys
 import json, yaml
+from datetime import datetime
 
 def saveObjAsJSON(iFileName, iObject):
     wfile = open(iFileName, "w")
@@ -39,3 +40,7 @@ def log(iLog):
 
 def taggedInput(iMessage):
     return input("[{}] {}".format(getProcessName(), iMessage))
+
+gStartTime = "{}".format(datetime.now())
+def getStartTime():
+    return gStartTime
