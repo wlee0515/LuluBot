@@ -3,7 +3,8 @@ import base64
 import uuid 
 
 from appCode.Common.utility import log
-from .RTIFederate import RTIFederate
+from .RTIFederate import RTIFederate, getRtiFederate
+from .RTISetup import getRtiHash
 
 class RTIObject:
     def __int__(self):
@@ -19,7 +20,7 @@ class RTIObject:
 class RTIObjectManager():
     def __init__(self, iRtiType, iRTIFederate, iTimeOut):
         self.mFederateRef = iRTIFederate
-        self.mRtiType = iRtiType
+        self.mRtiType = str(iRtiType)
         self.mOwnedObjects = {}
         self.mRemoteObjects = {}
         self.mStarted = False
@@ -68,21 +69,25 @@ class RTIObjectManager():
                     wObject.mElapseTime += wDeltaTime
                   
             wDeleteList = []
-            for wId, wObject in self.mRemoteObjects.items():
-                if wObject.mElapseTime > wTimeOut:
-                    wDeleteList.append(wId)
-                else:            
-                    wObject.mElapseTime += wDeltaTime
+            for wId, wFederateList in self.mRemoteObjects.items():
+                for wFedId, wObject in wFederateList.items():
+                    if wObject.mElapseTime > wTimeOut:
+                        wDeleteList.append([wId, wFedId])
+                    else:            
+                        wObject.mElapseTime += wDeltaTime
             
             for wKey in wDeleteList:
-                del self.mRemoteObjects[wKey]
+                wRObjectList = self.mRemoteObjects[wKey[0]]
+                del wRObjectList[wKey[1]]
+                if 0 == len(wRObjectList.items()):
+                    del self.mRemoteObjects[wKey[0]]
 
             wLastTime = wCurrentTime
             time.sleep(wSleepTime)
 
         log("RTI Object Manager Entry point Exited")
 
-    def processEventCallback(self, iSourceId, iType, iData):
+    def processEventCallback(self, iSource, iFederateId, iType, iData):
         if iType == self.mRtiType:
             wDecoded = iData.decode("utf8")
             wMessage = json.loads(wDecoded)
@@ -91,19 +96,25 @@ class RTIObjectManager():
 
             if "object" not in wMessage:
                 return
-            wId =  "{}-{}".format(iSourceId,wMessage["id"] )
+            wId = "{}".format(wMessage["id"])
 
             wObject = base64.b64decode(wMessage["object"].encode("utf8"))
-            if self.mFederateRef.checkSelfId(iSourceId):
+            if self.mFederateRef.checkFederateId(iFederateId):
                 print ("Object is owned")
                 pass
             else:
                 wRemoteObject = None
                 if wId not in self.mRemoteObjects:                
                     wRemoteObject = RTIObject()
-                    self.mRemoteObjects[wId] = wRemoteObject
+                    self.mRemoteObjects[wId] = {}
+                    self.mRemoteObjects[wId][iFederateId] = wRemoteObject
                 else:
-                    wRemoteObject = self.mRemoteObjects[wId] 
+                    wRemoteObjectList = self.mRemoteObjects[wId] 
+                    if iFederateId not in wRemoteObjectList:
+                        wRemoteObject = RTIObject()
+                        wRemoteObjectList[iFederateId] = wRemoteObject
+                    else:
+                        wRemoteObject = wRemoteObjectList[iFederateId]
                     
                 wRemoteObject.mObject = wObject
                 wRemoteObject.mElapseTime = 0
@@ -130,13 +141,35 @@ class RTIObjectManager():
         self.sendObject(iObjectId)
 
 
-    def getObject(self, iObjectId):
+    def getLocalObject(self, iObjectId):
         if iObjectId in self.mOwnedObjects:
-            return json.loads(self.mOwnedObjects[iObjectId])
-        if iObjectId in self.mRemoteObjects:
-            return json.loads(self.mRemoteObjects[iObjectId].object)
+            return json.loads(self.mOwnedObjects[iObjectId].mObject)
         return None
-        
+
+    def getRemoteObject(self, iObjectId):
+        if iObjectId in self.mRemoteObjects:
+            wContainer = {}
+            for wKey, wItem in self.mRemoteObjects[iObjectId].items():
+                wContainer[wKey]=json.loads(wItem.mObject)
+            return wContainer
+        return None
+
     def removeObject(self, iObjectId):
         if iObjectId in self.mOwnedObjects:
             del self.mOwnedObjects[iObjectId]
+
+gRTIObjectManagerDatabase = {}
+def getRTIObjectManager(iObjectType):
+    global gRTIObjectManagerDatabase
+    if iObjectType not in gRTIObjectManagerDatabase:
+        wNewObjeManager = RTIObjectManager(iObjectType, getRtiFederate(), 1.0)
+        gRTIObjectManagerDatabase[iObjectType] = wNewObjeManager
+        wNewObjeManager.startManager()
+        return wNewObjeManager
+    else : 
+        return gRTIObjectManagerDatabase[iObjectType] 
+
+def stopAllRTIObjectManager():
+    global gRTIObjectManagerDatabase
+    for wKey, wManager in gRTIObjectManagerDatabase.items():
+        wManager.stopManager()

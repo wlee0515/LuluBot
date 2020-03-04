@@ -7,6 +7,9 @@ from .RTIServer import RTIServer
 
 from .RTIFederate import RTIFederate
 from .RTIFederate import getRtiFederate
+from .RTIFederate import stopRtiFederate
 
-from .RTIObjectManager import RTIObjectManager
+from .RTIObjectManager import getRTIObjectManager
+from .RTIObjectManager import stopAllRTIObjectManager
+
 from .RTIProcessControl import RTIProcessControl

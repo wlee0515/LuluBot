@@ -1,6 +1,7 @@
 import os, sys, threading, time
-from .RTIObjectManager import RTIObjectManager
-from .RTIFederate import getRtiFederate
+from .RTIObjectManager import RTIObjectManager, getRTIObjectManager, stopAllRTIObjectManager
+from .RTIFederate import getRtiFederate, stopRtiFederate
+from .RTIServer import RTIServer
 
 class RTIProcessStatus:
     def __init__(self):
@@ -8,9 +9,8 @@ class RTIProcessStatus:
         self.mProcessMode = "NA"
 
 class RTIProcessControl:
-    def __init__(self, iRTIFederate, iProcessStartFunction, iProcessIterationFunction,  iProcessStopFunction):
+    def __init__(self, iProcessStartFunction, iProcessIterationFunction,  iProcessStopFunction):
         self.mProcessStatus = RTIProcessStatus()
-        self.mRTIProcessStatus = RTIObjectManager("process_status", iRTIFederate, 2)
         self.mProcessStartFunction = iProcessStartFunction
         self.mProcessIterationFunction = iProcessIterationFunction
         self.mProcessStopFunction = iProcessStopFunction
@@ -54,9 +54,13 @@ class RTIProcessControl:
         else:
             wTimeStep = 1/iFrequency
 
-        self.mRTIProcessStatus.startManager()
         self.mMonitorThread = threading.Thread(target= self.__MonitorThread__, args=(wTimeStep,)) 
         self.mMonitorThread.start()
+
+        wRTIServer = None
+        if "-server" in sys.argv:
+            wRTIServer = RTIServer()
+            wRTIServer.startServer()
 
         if None != self.mProcessStartFunction:
             self.mProcessStartFunction(iContext)
@@ -72,8 +76,12 @@ class RTIProcessControl:
         if None != self.mProcessStopFunction:
             self.mProcessStopFunction(iContext)
 
-        self.mRTIProcessStatus.stopManager()
-        
+        stopAllRTIObjectManager()
+        stopRtiFederate()
+
+        if None != wRTIServer:
+            wRTIServer.stopServer()
+
         self.endProcess()
         if None != self.mMonitorThread:
             self.mMonitorThread.join()

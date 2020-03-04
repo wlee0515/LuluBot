@@ -2,10 +2,13 @@ import os
 from appCode.Common.utility import log
 import hashlib
 
-def getRtiHashAddress(iAddress, iPort):
-    hash_object = hashlib.sha512("{}:{}".format(iAddress,iPort).encode("utf8"))
+def getRtiHash(iString):
+    hash_object = hashlib.sha512(iString)
     hex_dig = hash_object.hexdigest()
     return int(hex_dig, 16) % (10 ** 8)
+
+def getRtiHashAddress(iAddress, iPort):
+    return getRtiHash("{}:{}".format(iAddress,iPort).encode("utf8"))
 
 gRti_Server_Address = "localhost"
 gRti_Server_Port = 9000

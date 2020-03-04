@@ -117,7 +117,7 @@ class RTIServer:
                 if "list" in iEvent:
                     wCurrentProxy = self.mParticipantList[iParticipant]
                     wCurrentProxy.setSubscriptionList(iEvent["list"])
-                    log("Participant [{}] subsciptions {}".format(iParticipant, wCurrentProxy.mSubscriptionList))
+                    log("Participant [{}] subscriptions {}".format(iParticipant, wCurrentProxy.mSubscriptionList))
             
             elif "transfer" == wTask:
                 if "type" not in iEvent:

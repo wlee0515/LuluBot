@@ -10,8 +10,13 @@ def getRtiFederate():
     global gRTIFederate
     if None == gRTIFederate:
         gRTIFederate = RTIFederate()
+        gRTIFederate.startFederate()
     return gRTIFederate
 
+def stopRtiFederate():
+    global gRTIFederate
+    if None != gRTIFederate:
+        gRTIFederate.stopFederate()
 
 
 class RTIFederate:
@@ -147,7 +152,6 @@ class RTIFederate:
                 if "id" not in iEvent:
                     return
 
-                print("transfer checked")
                 wId = iEvent["id"]
                 if type(wId) != int:
                     return
@@ -160,7 +164,7 @@ class RTIFederate:
 
                 for wCallback in self.mEventCallbackList:
                     if None != wCallback:
-                        wCallback(wId , wType, wData)
+                        wCallback(wSource, wId , wType, wData)
     
-    def checkSelfId(self, iId):
+    def checkFederateId(self, iId):
         return self.mSelfId == iId

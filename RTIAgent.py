@@ -4,26 +4,19 @@ import appCode.Common.ServiceManager as ServiceManager
 
 import json
 import sys
+import pprint
+
+pp = pprint.PrettyPrinter(indent=4)
 
 def startFuntion(iContext):
-    
-    if "RTIServer" in iContext:
-        iContext["RTIServer"].startServer()
-
-    iContext["Federate"].startFederate()
-    iContext["ObjectManager"].startManager()
     iContext["Service"].startService()
 
-def stopFunction(iContext):    
-    if "RTIServer" in iContext:
-        iContext["RTIServer"].stopServer()
-        
-    iContext["Federate"].stopFederate()
-    iContext["ObjectManager"].stopManager()
+def stopFunction(iContext):
     iContext["Service"].stopService()
 
 
 def iterationFunction(iContext):
+
     wInput = input("Enter Command : ")
     if wInput == "exit":
         iContext["ProcessControl"].endProcess()
@@ -40,33 +33,37 @@ def iterationFunction(iContext):
                 if 3 <= len(wCmd):
                     wNewObject = {}
                     wNewObject["Data"] = wCmd[2]
-                    iContext["ObjectManager"].setObject(wCmd[1],wNewObject)
+                    rti.getRTIObjectManager("object").setObject(wCmd[1],wNewObject)
 
             elif "robject" == wCmd[0]:
                 wNewObject = {}
-                iContext["ObjectManager"].removeObject(wCmd[1])
+                rti.getRTIObjectManager("object").removeObject(wCmd[1])
 
             elif "print" == wCmd[0]:
-                if "owned" == wCmd[1]:
-                    print(iContext["ObjectManager"].mOwnedObjects)
+                if "local" == wCmd[1]:
+                    if 3 <= len(wCmd):
+                        wObject = rti.getRTIObjectManager("object").getLocalObject(wCmd[2])
+                        pp.pprint(wObject)
+                    else:
+                        pp.pprint(rti.getRTIObjectManager("object").mOwnedObjects)
 
                 elif "remote" == wCmd[1]:
-                    print(iContext["ObjectManager"].mRemoteObjects)
+                    if 3 <= len(wCmd):
+                        wObject = rti.getRTIObjectManager("object").getRemoteObject(wCmd[2])
+                        pp.pprint(wObject)
+                    else:
+                        pp.pprint(rti.getRTIObjectManager("object").mRemoteObjects)
+                    
 
 
 
 def main():
     
     iContext = {}
-    if "-server" in sys.argv:
-        iContext["RTIServer"] = rti.RTIServer()
-        
-    iContext["Federate"] = rti.getRtiFederate()
-    iContext["ObjectManager"] = rti.RTIObjectManager("object", iContext["Federate"] , 2)
     iContext["Service"] = ServiceManager.getServiceManager()
 
 
-    iContext["ProcessControl"] = rti.RTIProcessControl(iContext["Federate"], startFuntion, iterationFunction, stopFunction)
+    iContext["ProcessControl"] = rti.RTIProcessControl( startFuntion, iterationFunction, stopFunction)
     iContext["ProcessControl"].run(10, iContext)
     
     print("Prcess Stopped")
