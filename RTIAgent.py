@@ -17,6 +17,9 @@ def stopFunction(iContext):
 
 def iterationFunction(iContext):
 
+    if False == iContext["ProcessControl"].isCurrentProcessHost():
+        return
+
     wInput = input("Enter Command : ")
     if wInput == "exit":
         iContext["ProcessControl"].endProcess()

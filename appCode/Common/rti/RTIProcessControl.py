@@ -24,6 +24,8 @@ class RTIProcessControl:
         self.mIterationThread = None
         self.mHostList = {}
         
+    def isCurrentProcessHost(self):
+        return self.mProcessStatus["IsHost"]
 
     def setProcessPhase(self, iPhase):
         wObjectManager = getRTIObjectManager("process_state")
@@ -59,11 +61,10 @@ class RTIProcessControl:
     def endProcess(self):
         self.mEnd = True
 
-    def __selfIteration__(self, iContext):
-        if None != self.mProcessIterationFunction:
-            self.mProcessIterationFunction(iContext)
-
     def __iterationThread__(self, iFrequency, iContext):
+        if None == self.mProcessIterationFunction:
+            return
+
         wOneShotProcess = False
         wTimeStep = 1
         if iFrequency < 0.0:
@@ -72,11 +73,11 @@ class RTIProcessControl:
             wTimeStep = 1/iFrequency
 
         if wOneShotProcess:
-            self.__selfIteration__(iContext)
+            self.mProcessIterationFunction(iContext)
         else:
             self.mRunning = True
             while(self.mRunning):
-                self.__selfIteration__(iContext)
+                self.mProcessIterationFunction(iContext)
                 time.sleep(wTimeStep)
 
     def run(self, iFrequency, iContext):

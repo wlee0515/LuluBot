@@ -137,7 +137,6 @@ class RTIFederate:
                     
             wTask = iEvent["task"]
             if "subscribe" == wTask:
-                print("{}  == {}".format(wSource, getRtiServerHash()))
                 if wSource == getRtiServerHash():
                     self.sendUpdateSubsciptionEvent()
             

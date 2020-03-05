@@ -26,24 +26,29 @@ prelaunch:
   nextPhase: launch
 launch:
   env:
-    A: F
+    RTI_SERVER_ADDRESS: "localhost"
+    RTI_SERVER_PORT: 5000
+    RTI_PARTICIPANT_TIMEOUT: 10
+    RTI_DEBUG_MODE: false
   runParallel: true
   processList:
   - Name: RTI Server
     command:
     - python
-    - RTIServer.py
+    - RTIAgent.py
+    - -server
     env:
       A: G
   - Name: LuluBot
     command:
     - python
-    - RTIClient.py
+    - RTIAgent.py
     env:
       LuluBot: true
   - Name: WebServer
     command:
     - python
-    - webserver.py
+    - RTIAgent.py
+    - -rtiProcCtrlHost
     env:
-      A: H
+      WebServer: true
