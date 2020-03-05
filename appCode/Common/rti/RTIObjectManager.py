@@ -20,7 +20,7 @@ class RTIObject:
 class RTIObjectManager():
     def __init__(self, iRtiType, iRTIFederate, iTimeOut):
         self.mFederateRef = iRTIFederate
-        self.mRtiType = str(iRtiType)
+        self.mRtiType = "Object - {}".format(iRtiType)
         self.mOwnedObjects = {}
         self.mRemoteObjects = {}
         self.mStarted = False
@@ -219,13 +219,14 @@ class RTIObjectManager():
 gRTIObjectManagerDatabase = {}
 def getRTIObjectManager(iObjectType):
     global gRTIObjectManagerDatabase
-    if iObjectType not in gRTIObjectManagerDatabase:
-        wNewObjeManager = RTIObjectManager(iObjectType, getRtiFederate(), 1.0)
-        gRTIObjectManagerDatabase[iObjectType] = wNewObjeManager
-        wNewObjeManager.startManager()
-        return wNewObjeManager
+    wkey = getRtiHash(iObjectType)
+    if wkey not in gRTIObjectManagerDatabase:
+        wNewObjectManager = RTIObjectManager(iObjectType, getRtiFederate(), 1.0)
+        gRTIObjectManagerDatabase[wkey] = wNewObjectManager
+        wNewObjectManager.startManager()
+        return wNewObjectManager
     else : 
-        return gRTIObjectManagerDatabase[iObjectType] 
+        return gRTIObjectManagerDatabase[wkey] 
 
 def stopAllRTIObjectManager():
     global gRTIObjectManagerDatabase

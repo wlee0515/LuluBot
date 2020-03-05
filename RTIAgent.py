@@ -22,12 +22,28 @@ def iterationFunction(iContext):
         iContext["ProcessControl"].endProcess()
     else:
         wCmd =  wInput.split(" ")
+        
+        if "end_event" == wCmd[0]:
+            wNewObject = {}
+            wNewObject["EndProcess"] = True
+            wNewObject["target"] = "All"     
+            if 2 <= len(wCmd):
+                wNewObject["target"] = int (wCmd[1])    
+                           
+            rti.getRTIEventManager("process_change").sendEvent(wNewObject)
+
         if 2 <= len(wCmd):
             if "subscribe" == wCmd[0]:
                 iContext["Federate"].subscribeToType(wCmd[1])
 
             elif "unsubscribe" == wCmd[0]:
                 iContext["Federate"].unsubscribeFromType(wCmd[1])
+
+            elif "event" == wCmd[0]:
+                if 3 <= len(wCmd):
+                    wNewObject = {}
+                    wNewObject["BangBang"] = wCmd[2]
+                    rti.getRTIEventManager(wCmd[1]).sendEvent(wNewObject)
 
             elif "object" == wCmd[0]:
                 if 3 <= len(wCmd):

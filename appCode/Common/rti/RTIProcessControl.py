@@ -1,5 +1,6 @@
 import os, sys, threading, time
-from .RTIObjectManager import RTIObjectManager, getRTIObjectManager, stopAllRTIObjectManager
+from .RTIObjectManager import getRTIObjectManager, stopAllRTIObjectManager
+from .RTIEventManager import getRTIEventManager, stopAllRTIEventManager
 from .RTIFederate import getRtiFederate, stopRtiFederate
 from .RTIServer import RTIServer
 from appCode.Common.utility import getProcessName, getStartTime
@@ -11,7 +12,7 @@ class RTIProcessControl:
         self.mProcessStatus["StartTime"] = getStartTime()
         self.mProcessStatus["IsHost"] = False
 
-        if "=host" in sys.argv:
+        if "-rtiProcCtrlHost" in sys.argv:
             self.mProcessStatus["IsHost"] = True
 
         self.mProcessStartFunction = iProcessStartFunction
@@ -20,8 +21,8 @@ class RTIProcessControl:
         self.mRunning = False
         self.mStarted = False
         self.mEnd = False
-        self.mMonitorThread = None
-        self.mIsHost = "-rtiProcCtrlHost" in sys.argv 
+        self.mIterationThread = None
+        self.mHostList = {}
         
 
     def setProcessPhase(self, iPhase):
@@ -29,39 +30,40 @@ class RTIProcessControl:
         self.mProcessStatus["phase"] = "{}".format(iPhase)
         wObjectManager.setObject("status", self.mProcessStatus)
         
-    def processStatusObjectEnter(self, iType, iSourceId, iFerderateId, iObjectId, iObject):
-        print("Enter {}-{}-{}-{}-{}".format(iType, iSourceId, iFerderateId, iObjectId, iObject))
+    def processStatusObjectEnter(self, iType, iSourceId, iFederateId, iObjectId, iObject):
+        if "IsHost" in iObject:
+            if True == iObject["IsHost"]:
+                if iSourceId not in self.mHostList:
+                    self.mHostList[iSourceId] = {}
+                self.mHostList[iSourceId][iFederateId] = True
 
-    def processStatusObjectLeave(self, iType, iSourceId, iFerderateId, iObjectId, iObject):
-        print("Exit {}-{}-{}-{}-{}".format(iType, iSourceId, iFerderateId, iObjectId, iObject))
+    def processStatusObjectLeave(self, iType, iSourceId, iFederateId, iObjectId, iObject):
+        if iSourceId in self.mHostList:
+            if iFederateId in self.mHostList[iSourceId]:
+                del self.mHostList[iSourceId][iFederateId]
+            if 0 == len(self.mHostList[iSourceId]):
+                del self.mHostList[iSourceId]
+
+    def processProcessChangeEvent(self, iType, iSourceId, iFederateId, iEvent):
+        print("Event {}-{}-{}-{}".format(iType, iSourceId, iFederateId, iEvent))
+        if "EndProcess" in iEvent:
+            if iSourceId not in self.mHostList:
+                return
+            if iFederateId not in self.mHostList[iSourceId]:
+                return    
+            if True == iEvent["EndProcess"]:
+                if "target" in iEvent:
+                    if "All" == iEvent["target"] or (getRtiFederate().checkFederateId(iEvent["target"])):
+                        self.endProcess() 
 
     def endProcess(self):
         self.mEnd = True
 
     def __selfIteration__(self, iContext):
         if None != self.mProcessIterationFunction:
-            print("hello")
             self.mProcessIterationFunction(iContext)
 
-    def __MonitorThread__(self, iTimeStep):
-        self.mEnd = False
-        wTimeStep = iTimeStep
-        if wTimeStep < 0.001:
-            wTimeStep = 0.001
-        if wTimeStep > 1.0:
-            wTimeStep = 1.0
-
-        while False == self.mEnd:
-          
-
-            time.sleep(wTimeStep)
-
-        self.mRunning = False
-
-    def run(self, iFrequency, iContext):
-        if True == self.mStarted:
-            return
-
+    def __iterationThread__(self, iFrequency, iContext):
         wOneShotProcess = False
         wTimeStep = 1
         if iFrequency < 0.0:
@@ -69,9 +71,17 @@ class RTIProcessControl:
         else:
             wTimeStep = 1/iFrequency
 
-        self.setProcessPhase("starting")
-        self.mMonitorThread = threading.Thread(target= self.__MonitorThread__, args=(wTimeStep,)) 
-        self.mMonitorThread.start()
+        if wOneShotProcess:
+            self.__selfIteration__(iContext)
+        else:
+            self.mRunning = True
+            while(self.mRunning):
+                self.__selfIteration__(iContext)
+                time.sleep(wTimeStep)
+
+    def run(self, iFrequency, iContext):
+        if True == self.mStarted:
+            return
 
         wObjectManager = getRTIObjectManager("process_state")
         wObjectManager.subscribeLocalObjectEnter(self.processStatusObjectEnter)
@@ -79,6 +89,9 @@ class RTIProcessControl:
         wObjectManager.subscribeLocalObjectLeave(self.processStatusObjectLeave)
         wObjectManager.subscribeRemoteObjectLeave(self.processStatusObjectLeave)
 
+        wEventManager = getRTIEventManager("process_change")
+        wEventManager.subscribeEventCallback(self.processProcessChangeEvent)
+        
         wRTIServer = None
         if "-server" in sys.argv:
             wRTIServer = RTIServer()
@@ -89,33 +102,38 @@ class RTIProcessControl:
 
         self.setProcessPhase("running")
 
-        if wOneShotProcess:
-            self.__selfIteration__(iContext)
-        else:
-            self.mRunning = True
-            while(self.mRunning):
-                self.mProcessIterationFunction(iContext)
-                time.sleep(wTimeStep)
+        self.setProcessPhase("starting")
+        self.mIterationThread = threading.Thread(target= self.__iterationThread__, args=(iFrequency,iContext)) 
+        self.mIterationThread.setDaemon(True)
+        self.mIterationThread.start()
+
+        while False == self.mEnd:
+            time.sleep(1.0)
+
+        if None != self.mIterationThread:
+            self.mRunning = False
+            self.mIterationThread.join(5)
+            self.mIterationThread = None
 
         if None != self.mProcessStopFunction:
             self.mProcessStopFunction(iContext)
 
         self.setProcessPhase("stopping")
+        time.sleep(3.0)        
+        self.setProcessPhase("stop")
 
         wObjectManager.unsubscribeLocalObjectEnter(self.processStatusObjectEnter)
         wObjectManager.unsubscribeRemoteObjectEnter(self.processStatusObjectEnter)
         wObjectManager.unsubscribeLocalObjectLeave(self.processStatusObjectLeave)
         wObjectManager.unsubscribeRemoteObjectLeave(self.processStatusObjectLeave)
 
+        wEventManager.unsubscribeEventCallback(self.processProcessChangeEvent)
+        
         stopAllRTIObjectManager()
+        stopAllRTIEventManager()
         stopRtiFederate()
 
         if None != wRTIServer:
             wRTIServer.stopServer()
-
-        self.endProcess()
-        if None != self.mMonitorThread:
-            self.mMonitorThread.join()
-            self.mMonitorThread = None
 
         self.mStarted = False

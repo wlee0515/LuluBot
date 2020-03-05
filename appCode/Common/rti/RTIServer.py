@@ -2,19 +2,22 @@ import time, threading
 import json
 from appCode.Device.socket import UDPServer
 from appCode.Common.utility import log
-from .RTISetup import getRtiParticipantTimeOut, getRtiServerHash, getRtiHashAddress, getRtiServerPort, getRtiDebugMode
+from .RTISetup import getRtiParticipantTimeOut, getRtiServerHash, getRtiHash, getRtiHashAddress, getRtiServerPort, getRtiDebugMode
 
 class Participant_Proxy:
     def __init__(self, iAddress):
         self.mAddress = iAddress
         self.mElapseTime = 0
         self.mSubscriptionList = {}
+        self.mSubscriptionListHash = {}
 
     def setSubscriptionList(self, iList):
         self.mSubscriptionList = [] 
+        self.mSubscriptionListHash = []
         for item in iList:
             if type(item) == str:
                 self.mSubscriptionList.append(item)
+                self.mSubscriptionListHash.append(getRtiHash(item))
 
     def processMessage(self, iMessage):
         log(iMessage)
@@ -22,6 +25,9 @@ class Participant_Proxy:
 
     def checkSubscription(self, iSubscribedType):
         return iSubscribedType in self.mSubscriptionList
+
+    def checkSubscriptionHash(self, iSubscribedTypeHash):
+        return iSubscribedTypeHash in self.mSubscriptionListHash
 
 class RTIServer:
     def __init__(self):
@@ -132,8 +138,9 @@ class RTIServer:
                 iEvent["source"] = iParticipant
                 wEventString = json.dumps(iEvent)
                 
+                wTypeHash = getRtiHash(wType)
                 for wKey, wProxy in self.mParticipantList.items():
                     if wKey != iParticipant:
-                        if wProxy.checkSubscription(wType):
+                        if wProxy.checkSubscriptionHash(wTypeHash):
                             self.mUDPServer.send(wEventString.encode("utf8"), wProxy.mAddress)
 

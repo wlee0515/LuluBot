@@ -12,4 +12,7 @@ from .RTIFederate import stopRtiFederate
 from .RTIObjectManager import getRTIObjectManager
 from .RTIObjectManager import stopAllRTIObjectManager
 
+from .RTIEventManager import getRTIEventManager
+from .RTIEventManager import stopAllRTIEventManager
+
 from .RTIProcessControl import RTIProcessControl
