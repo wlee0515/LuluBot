@@ -13,6 +13,8 @@ from sqlalchemy import Column, Date, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
 
+import pprint
+
 class User(Base):
   __tablename__ = "users"
 
@@ -83,6 +85,8 @@ def handle_broadcast_tx(json):
     print('Broadcast message: ' + message)
 
 def RTI_Shutdown(path):
+    if not session.get('logged_in'):
+        return home()
     wNewObject = {}
     wNewObject["EndProcess"] = True
     wNewObject["target"] = path
@@ -91,13 +95,25 @@ def RTI_Shutdown(path):
     rti.getRTIEventManager("process_change").sendEvent(wNewObject)
     return "RTI End Process Event Sent"
 
-def RTI_ProcessState():
-    wNewObject = {}
-    wNewObject["EndProcess"] = True
-    wNewObject["target"] = path
-    if "All" != path:
-        wNewObject["target"] = int (path)    
-    rti.getRTIEventManager("process_change").sendEvent(wNewObject)
+def RTI_LocalObject(path):
+    if not session.get('logged_in'):
+        return home()
+    wCmd =path.split("/")
+    if 2 > len(wCmd):
+        wObject = rti.getRTIObjectManager(wCmd[0]).mOwnedObjects
+        return pprint.pformat(wObject, indent=4)
+    wObject = rti.getRTIObjectManager(wCmd[0]).getLocalObject(wCmd[1])
+    return pprint.pformat(wObject, indent=4)
+
+def RTI_RemoteObject(path):
+    if not session.get('logged_in'):
+        return home()
+    wCmd =path.split("/")
+    if 2 > len(wCmd):
+        wObject = rti.getRTIObjectManager(wCmd[0]).mRemoteObjects
+        return pprint.pformat(wObject, indent=4)
+    wObject = rti.getRTIObjectManager(wCmd[0]).getRemoteObject(wCmd[1])
+    return pprint.pformat(wObject, indent=4)
 
 class WebServer(ServiceManager.Service):
     def __init__(self):
@@ -117,6 +133,8 @@ class WebServer(ServiceManager.Service):
         self.mWebServer.addAppRule("/script/<path:path>", "script", send_script)
         self.mWebServer.addAppRule("/logout", "logout", site_logout)
         self.mWebServer.addAppRule("/RTI_Shutdown/<path:path>", "RTI_Shutdown", RTI_Shutdown)
+        self.mWebServer.addAppRule("/RTI_Obj/local/<path:path>", "RTI_Obj_local", RTI_LocalObject)
+        self.mWebServer.addAppRule("/RTI_Obj/remote/<path:path>", "RTI_Obj_remote", RTI_RemoteObject)
         
         self.mWebServer.addSocketRule('connect', socket_connect, None)
         self.mWebServer.addSocketRule('disconnect', socket_disconnect, None)
