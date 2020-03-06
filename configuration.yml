@@ -27,7 +27,7 @@ prelaunch:
 launch:
   env:
     RTI_SERVER_ADDRESS: "localhost"
-    RTI_SERVER_PORT: 5000
+    RTI_SERVER_PORT: 6868
     RTI_PARTICIPANT_TIMEOUT: 10
     RTI_DEBUG_MODE: false
   runParallel: true
@@ -37,8 +37,6 @@ launch:
     - python
     - RTIAgent.py
     - -server
-    env:
-      A: G
   - Name: LuluBot
     command:
     - python
@@ -51,4 +49,4 @@ launch:
     - RTIAgent.py
     - -rtiProcCtrlHost
     env:
-      WebServer: true
+      LuluBotWebServer: true

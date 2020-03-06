@@ -18,5 +18,5 @@ gSqlDatabaseLibrary = {}
 def getDatabase(iDatabaseName):
     global gSqlDatabaseLibrary
     if iDatabaseName not in gSqlDatabaseLibrary:
-        gSqlDatabaseLibrary[iDatabaseName] = SqlDatabase(iDatabaseName, True)
+        gSqlDatabaseLibrary[iDatabaseName] = SqlDatabase(iDatabaseName, False)
     return gSqlDatabaseLibrary[iDatabaseName]

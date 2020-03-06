@@ -1,5 +1,5 @@
 import os
-
+from appCode.Common.utility import log
 gServiceManager = None
 def getServiceManager():
     global gServiceManager
@@ -9,13 +9,13 @@ def getServiceManager():
 
 def initService_always(iService):
     getServiceManager().addService(iService())
-    print("Service [{}] added".format(iService))
+    log("Service [{}] added".format(iService))
 
 def initService(iEnv, iValue, iService):
     if iEnv in os.environ:
         if os.environ[iEnv] == str(iValue):
             getServiceManager().addService(iService())
-            print("Service [{}] added".format(iService))
+            log("Service [{}] added".format(iService))
             return True
     return False
 

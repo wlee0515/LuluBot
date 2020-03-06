@@ -3,7 +3,7 @@ from .RTIObjectManager import getRTIObjectManager, stopAllRTIObjectManager
 from .RTIEventManager import getRTIEventManager, stopAllRTIEventManager
 from .RTIFederate import getRtiFederate, stopRtiFederate
 from .RTIServer import RTIServer
-from appCode.Common.utility import getProcessName, getStartTime
+from appCode.Common.utility import getProcessName, getStartTime, log
 
 class RTIProcessControl:
     def __init__(self, iProcessStartFunction, iProcessIterationFunction,  iProcessStopFunction):
@@ -28,6 +28,7 @@ class RTIProcessControl:
         return self.mProcessStatus["IsHost"]
 
     def setProcessPhase(self, iPhase):
+        log("Setting process phase to [{}]".format(iPhase))
         wObjectManager = getRTIObjectManager("process_state")
         self.mProcessStatus["phase"] = "{}".format(iPhase)
         wObjectManager.setObject("status", self.mProcessStatus)
@@ -47,15 +48,18 @@ class RTIProcessControl:
                 del self.mHostList[iSourceId]
 
     def processProcessChangeEvent(self, iType, iSourceId, iFederateId, iEvent):
-        print("Event {}-{}-{}-{}".format(iType, iSourceId, iFederateId, iEvent))
+        log("Event {}-{}-{}-{}".format(iType, iSourceId, iFederateId, iEvent))
         if "EndProcess" in iEvent:
             if iSourceId not in self.mHostList:
+                log("Source Id not registered as host")
                 return
             if iFederateId not in self.mHostList[iSourceId]:
+                log("Federate Id not registered as host")
                 return    
             if True == iEvent["EndProcess"]:
                 if "target" in iEvent:
                     if "All" == iEvent["target"] or (getRtiFederate().checkFederateId(iEvent["target"])):
+                        log("End Event Accepted")
                         self.endProcess() 
 
     def endProcess(self):
@@ -98,12 +102,11 @@ class RTIProcessControl:
             wRTIServer = RTIServer()
             wRTIServer.startServer()
 
+        self.setProcessPhase("starting")
         if None != self.mProcessStartFunction:
             self.mProcessStartFunction(iContext)
 
         self.setProcessPhase("running")
-
-        self.setProcessPhase("starting")
         self.mIterationThread = threading.Thread(target= self.__iterationThread__, args=(iFrequency,iContext)) 
         self.mIterationThread.setDaemon(True)
         self.mIterationThread.start()
