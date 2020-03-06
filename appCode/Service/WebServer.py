@@ -9,18 +9,26 @@ import threading
 import eventlet
 eventlet.monkey_patch()
 
-from sqlalchemy import *
-from sqlalchemy.orm import sessionmaker
-from appCode import *
-engine = create_engine('sqlite:///ctrlcenter.db', echo=True)
-
-from appCode.Device.socket import UDPServer
 from appCode.Common.utility import log
+from appCode.Device.database import sql
 
-app= Flask(__name__)
-socketIO = SocketIO(app)
+from sqlalchemy import Column, Date, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
+Base = declarative_base()
 
-@app.route('/')
+class User(Base):
+  __tablename__ = "users"
+
+  id = Column(Integer, primary_key=True)
+  username = Column(String)
+  password = Column(String)
+
+  def __init__(self, username, password):
+    self.username = username
+    self.password = password
+    
+
+
 def home():
     if not session.get('logged_in'):
         return redirect("/login/index.html", code=302)
@@ -28,44 +36,38 @@ def home():
     else:
         return redirect("/site/home", code=302)
 	
-    
-@app.route('/login/<path:path>')
 def send_loginsite(path):
     return send_from_directory('login',path)
 
-@app.route('/login', methods=['POST'])
 def site_login():
+    print("Login Requested")
     POST_USERNAME = str(request.json['username'])
     POST_PASSWORD = str(request.json['password'])
-    Session = sessionmaker(bind=engine)
-    s = Session()
+
+    s = sql.getDatabase('ctrlcenter').getSesson()
     query = s.query(User).filter(User.username.in_([POST_USERNAME]), User.password.in_([POST_PASSWORD]) )
     result = query.first()
+    result = True
     if result:
         session['logged_in'] = True
     else:
         return "ERROR"
     return "TRUE"
 	
-@app.route("/logout")
 def site_logout():
     session['logged_in'] = False
     return "TRUE"
     
-@app.route('/site/<path:path>')
 def send_site(path):
     if not session.get('logged_in'):
         return home()
     return send_from_directory('site', path + "/index.html")
 
-@app.route('/script/<path:path>')
 def send_script(path):
     if not session.get('logged_in'):
         return home()
     return send_from_directory('site', path)
 
-
-@socketIO.on('connect')
 def socket_connect():
     if not session.get('logged_in'):
         print('unauthorized client connection attempt')
@@ -74,61 +76,75 @@ def socket_connect():
         print('Client connected')
         emit('chat message', "Welcome")
 
-@socketIO.on('disconnect')
 def socket_disconnect():
     print('Client disconnected')
 
-@socketIO.on('chat message')
 def handle_chatmessage(message):
     print('received chat message: ' + message)
     emit('chat message', message, broadcast=True)
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    for address in mAddressList:
-        sent = sock.sendto(bytes(message, 'utf8'), address)
-        print('Sending data to {} port {}'.format(*address))
 
-    sock.close()
     
-@socketIO.on('Broadcast TX')
 def handle_broadcast_tx(json):
     print('Broadcast message: ' + message)
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sent = sock.sendto(bytes(json.data, 'utf8'), json.address)
-    sock.close()
 
-def Flask_Thread(arg1):
-    app.secret_key = os.urandom(12)
-    port = int(os.environ.get('PORT', 2000))
+
+import appCode.Common.ServiceManager as ServiceManager
+
+
+class WebServer(ServiceManager.Service):
+    def __init__(self):
+        self.mStarted = False
+        self.mRunning = False
+        self.mEntryPointThread = None
+
+        wSiteDirectory = os.path.abspath('./website/')
+        self.mFlaskApp = Flask(__name__, root_path=wSiteDirectory)
+        self.mFlaskSocketIO = SocketIO(self.mFlaskApp)
+        
+    def startService(self):
+        if True == self.mStarted:
+            return
+        log("Webserver Start")
+
+        self.addAppRule("/", "home", home)
+        self.addAppRule("/login/<path:path>", "loginSite", send_loginsite)
+        self.addAppRule("/login", "login", site_login, ['POST'])
+        self.addAppRule("/logout", "logout", site_logout)
+        self.addAppRule("/site/<path:path>", "site", send_site)
+        self.addAppRule("/script/<path:path>", "script", send_script)
+        self.addAppRule("/logout", "logout", site_logout)
+
+
+        self.addSocketRule('connect', socket_connect, None)
+        self.addSocketRule('disconnect', socket_disconnect, None)
+        self.addSocketRule('chat message', handle_chatmessage, None)
+        self.addSocketRule('Broadcast TX', handle_broadcast_tx, None)
+
+
+        wDatabase = sql.getDatabase('ctrlcenter')
+        Base.metadata.create_all(wDatabase.getEngine())
+
+        self.mServerThread = threading.Thread(target=self.ServerThread) 
+        self.mServerThread.setDaemon(True)
+        self.mServerThread.start()
+      
+    def ServerThread(self):
+        self.mFlaskApp.secret_key = os.urandom(12)
+        port = int(os.environ.get('PORT', 2000))
+        self.mFlaskSocketIO.run(self.mFlaskApp, host='0.0.0.0', port=port, debug=False)
+
     
-    socketIO.run(app, host='0.0.0.0', port=port, debug=False)
+    def stopService(self):
+        if False == self.mStarted:
+            return
+        log("Webserver End")
+        pass
 
-mAddressList = []
-def UdpCallBack(iMessage, iAddress):
-    if (iAddress not in mAddressList):
-        mAddressList.append(iAddress)
-    return socketIO.emit('chat message', iMessage, json = True, broadcast=True)
+    def addAppRule(self, iEndpoint=None, iEndpoint_name=None, iHandler=None, iMethod=None):
+        self.mFlaskApp.add_url_rule(iEndpoint, iEndpoint_name, iHandler, methods=iMethod)
 
-
-def main():	
-    # creating thread 
-    
-    gUdpServer = UDPServer(10000, UdpCallBack)
-    gUdpServer.startServer()
-
-    wThread_Flask = threading.Thread(target=Flask_Thread, args=(None,)) 
-    
-    #starting thread 
-    wThread_Flask.start() 
-  
-    # wait for thread completion
-    wThread_Flask.join() 
-    
-    gUdpServer.stopServer()
-
-    
-    # Completion
-    print("Bye!") 
+    def addSocketRule(self, iEvent=None, iHandler=None, iNameSpace=None):
+        self.mFlaskSocketIO.on_event(iEvent, iHandler, iNameSpace)
 
 
-if __name__ == '__main__':
-    main()
+ServiceManager.initService("WebServer", True, WebServer)

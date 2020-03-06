@@ -16,10 +16,10 @@ class LuluBot(ServiceManager.Service):
     def startService(self):
         if True == self.mStarted:
             return
+        log("Lulu Start")
         self.mStarted = True
         self.mEntryPointThread = threading.Thread(target=self.entryPoint) 
         self.mEntryPointThread.start()
-        print("Lulu Start")
       
     def entryPoint(self):
         self.mRunning = True
@@ -42,6 +42,7 @@ class LuluBot(ServiceManager.Service):
     def stopService(self):
         if False == self.mStarted:
             return
+        log("Lulu End")
         self.mStarted = False
         if None != self.mEntryPointThread:
             self.mRunning = False
