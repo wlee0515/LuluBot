@@ -90,8 +90,19 @@ def RTI_Shutdown(path):
     wNewObject = {}
     wNewObject["EndProcess"] = True
     wNewObject["target"] = path
-    if "All" != path:
+    try:
         wNewObject["target"] = int (path)    
+    except e:
+        pass
+    rti.getRTIEventManager("process_change").sendEvent(wNewObject)
+    return "RTI End Process Event Sent"
+
+def RTI_ShutdownAll():
+    if not session.get('logged_in'):
+        return home()
+    wNewObject = {}
+    wNewObject["EndProcess"] = True
+    wNewObject["target"] = "All"
     rti.getRTIEventManager("process_change").sendEvent(wNewObject)
     return "RTI End Process Event Sent"
 
@@ -132,9 +143,10 @@ class WebServer(ServiceManager.Service):
         self.mWebServer.addAppRule("/site/<path:path>", "site", send_site)
         self.mWebServer.addAppRule("/script/<path:path>", "script", send_script)
         self.mWebServer.addAppRule("/logout", "logout", site_logout)
-        self.mWebServer.addAppRule("/RTI_Shutdown/<path:path>", "RTI_Shutdown", RTI_Shutdown)
-        self.mWebServer.addAppRule("/RTI_Obj/local/<path:path>", "RTI_Obj_local", RTI_LocalObject)
-        self.mWebServer.addAppRule("/RTI_Obj/remote/<path:path>", "RTI_Obj_remote", RTI_RemoteObject)
+        self.mWebServer.addAppRule("/rti/shutdown", "RTI_ShutdownAll", RTI_ShutdownAll)
+        self.mWebServer.addAppRule("/rti/shutdown/<path:path>", "RTI_Shutdown", RTI_Shutdown)
+        self.mWebServer.addAppRule("/rti/object/local/<path:path>", "RTI_Obj_local", RTI_LocalObject)
+        self.mWebServer.addAppRule("/rti/object/remote/<path:path>", "RTI_Obj_remote", RTI_RemoteObject)
         
         self.mWebServer.addSocketRule('connect', socket_connect, None)
         self.mWebServer.addSocketRule('disconnect', socket_disconnect, None)

@@ -24,7 +24,7 @@ class RTIObjectManager():
         self.mOwnedObjects = {}
         self.mRemoteObjects = {}
         self.mStarted = False
-        self.mRunning = False
+        self.mLastIterationTime = time.time()
         self.mObjectTimeOut = iTimeOut
         self.mManagerId = uuid.uuid1()
         if self.mObjectTimeOut < 1.0:
@@ -38,10 +38,9 @@ class RTIObjectManager():
         if True == self.mStarted:
             return
         self.mStarted = True
-        self.mEntryPointThread = threading.Thread(target=self.entryPoint) 
-        self.mEntryPointThread.start()
         self.mFederateRef.subscribeToEventCallback(self.processEventCallback)
         self.mFederateRef.subscribeToType(self.mRtiType)
+        self.mLastIterationTime = time.time()
 
     def stopManager(self):
         if False == self.mStarted:
@@ -49,53 +48,41 @@ class RTIObjectManager():
         self.mStarted = False
         self.mFederateRef.unsubscribeFromEventCallback(self.processEventCallback)
         self.mFederateRef.unsubscribeFromType(self.mRtiType)
-        if None != self.mEntryPointThread:
-            self.mRunning = False
-            self.mEntryPointThread.join()
-            self.mEntryPointThread = None
         self.mOwnedObjects.clear()
         self.mRemoteObjects.clear()
 
-    def entryPoint(self):
-        self.mRunning = True
-        wTimeOut = self.mObjectTimeOut
-        wSleepTime =(wTimeOut+1)/10
-        wLastTime = time.time()
-        wSendTime = wTimeOut - wSleepTime
+    def iteration(self):
+        wCurrentTime = time.time()
+        wDeltaTime = wCurrentTime - self.mLastIterationTime
+        self.mLastIterationTime = wCurrentTime
 
-        while(self.mRunning):
-            wCurrentTime = time.time()
-            wDeltaTime = wCurrentTime - wLastTime
-            for wId, wObject in self.mOwnedObjects.items():
-                if wObject.mElapseTime > wSendTime:
-                    self.sendObject(wId)
-                else:
-                    wObject.mElapseTime += wDeltaTime
+        wSendTime = 2*self.mObjectTimeOut/3
+
+        for wId, wObject in self.mOwnedObjects.items():
+            if wObject.mElapseTime > wSendTime:
+                self.sendObject(wId)
+            else:
+                wObject.mElapseTime += wDeltaTime
                   
-            wDeleteList = []
-            for wId, wFederateList in self.mRemoteObjects.items():
-                for wFedId, wObject in wFederateList.items():
-                    if wObject.mElapseTime > wTimeOut:
+        wDeleteList = []
+        for wId, wFederateList in self.mRemoteObjects.items():
+            for wFedId, wObject in wFederateList.items():
+                if wObject.mElapseTime > self.mObjectTimeOut:
                         wDeleteList.append([wId, wFedId])
-                    else:            
-                        wObject.mElapseTime += wDeltaTime
+                else:            
+                    wObject.mElapseTime += wDeltaTime
             
-            for wKey in wDeleteList:
-                wRObjectList = self.mRemoteObjects[wKey[0]]
+        for wKey in wDeleteList:
+            wRObjectList = self.mRemoteObjects[wKey[0]]
                 
-                wJSONObject = json.loads(wRObjectList[wKey[1]].mObject)
-                for wCallback in self.mRemoteObjectLeaveCallback:
-                    if None != wCallback:
-                        wCallback( self.mRtiType, 0, wKey[1], wKey[0], wJSONObject)
+            wJSONObject = json.loads(wRObjectList[wKey[1]].mObject)
+            for wCallback in self.mRemoteObjectLeaveCallback:
+                if None != wCallback:
+                    wCallback( self.mRtiType, 0, wKey[1], wKey[0], wJSONObject)
 
-                del wRObjectList[wKey[1]]
-                if 0 == len(wRObjectList.items()):
-                    del self.mRemoteObjects[wKey[0]]
-
-            wLastTime = wCurrentTime
-            time.sleep(wSleepTime)
-
-        log("RTI Object Manager Entry point Exited")
+            del wRObjectList[wKey[1]]
+            if 0 == len(wRObjectList.items()):
+                del self.mRemoteObjects[wKey[0]]
 
     def processEventCallback(self, iSource, iFederateId, iType, iData):
         if iType == self.mRtiType:
@@ -232,3 +219,8 @@ def stopAllRTIObjectManager():
     global gRTIObjectManagerDatabase
     for wKey, wManager in gRTIObjectManagerDatabase.items():
         wManager.stopManager()
+
+        
+def processAllRTIObjectManagerIteration():
+    for wKey, wManager in gRTIObjectManagerDatabase.items():
+        wManager.iteration()

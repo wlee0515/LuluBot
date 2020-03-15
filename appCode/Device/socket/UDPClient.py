@@ -42,9 +42,11 @@ class UDPClient:
         self.mRunning = True
         while False == self.mEndReceive:
             try:
-                data, server = self.mSocket.recvfrom(4096)
-                if None != self.mCallback :
-                    self.mCallback(data)
+                wSocketReceive = self.mSocket.recvfrom(4096)
+                if 2 == len(wSocketReceive):
+                    data, server = wSocketReceive
+                    if None != self.mCallback :
+                        self.mCallback(data)
             except socket.timeout as e:
                 pass
             except socket.error as e:

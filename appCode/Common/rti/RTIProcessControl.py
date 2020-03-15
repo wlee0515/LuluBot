@@ -1,5 +1,5 @@
 import os, sys, threading, time
-from .RTIObjectManager import getRTIObjectManager, stopAllRTIObjectManager
+from .RTIObjectManager import getRTIObjectManager, stopAllRTIObjectManager, processAllRTIObjectManagerIteration
 from .RTIEventManager import getRTIEventManager, stopAllRTIEventManager
 from .RTIFederate import getRtiFederate, stopRtiFederate
 from .RTIServer import RTIServer
@@ -78,10 +78,12 @@ class RTIProcessControl:
 
         if wOneShotProcess:
             self.mProcessIterationFunction(iContext)
+            processAllRTIObjectManagerIteration()
         else:
             self.mRunning = True
             while(self.mRunning):
                 self.mProcessIterationFunction(iContext)
+                processAllRTIObjectManagerIteration()
                 time.sleep(wTimeStep)
 
     def run(self, iFrequency, iContext):

@@ -7,7 +7,7 @@ from .RTIFederate import RTIFederate, getRtiFederate
 from .RTISetup import getRtiHash
 
 class RTIEventManager():
-    def __init__(self, iRtiType, iRTIFederate, iTimeOut):
+    def __init__(self, iRtiType, iRTIFederate):
         self.mFederateRef = iRTIFederate
         self.mRtiType = "Event - {}".format(iRtiType)
         self.mStarted = False
@@ -69,7 +69,7 @@ def getRTIEventManager(iObjectType):
     global gRTIEventManagerDatabase
     wkey = getRtiHash(iObjectType)
     if wkey not in gRTIEventManagerDatabase:
-        wNewEventManager = RTIEventManager(iObjectType, getRtiFederate(), 1.0)
+        wNewEventManager = RTIEventManager(iObjectType, getRtiFederate())
         gRTIEventManagerDatabase[wkey] = wNewEventManager
         wNewEventManager.startManager()
         return wNewEventManager

@@ -19,6 +19,7 @@ class UDPServer:
         self.mSocket.bind(self.mServerAddress)
         self.mEndReceive = False    
         self.mReceiveThread =  threading.Thread(target=self.recv) 
+        self.mReceiveThread.setDaemon(True)
         self.mReceiveThread.start()
 
     def stopServer(self):
@@ -28,7 +29,7 @@ class UDPServer:
         log('stopping server on {} port {}'.format(*self.mServerAddress))
         self.mEndReceive = True
         if None != self.mReceiveThread:
-            self.mReceiveThread.join() 
+            self.mReceiveThread.join(1) 
         self.mSocket.shutdown(socket.SHUT_RDWR)
         self.mSocket.close()
 
@@ -42,11 +43,13 @@ class UDPServer:
         self.mStarted = True
         while False == self.mEndReceive:
             try:
-                data, address = self.mSocket.recvfrom(4096)
-                if None != self.mCallback:
-                    wReply = self.mCallback(data, address)
-                    if (None != wReply) and ("" != wReply):
-                        self.send( wReply, address)
+                wSocketReceive = self.mSocket.recvfrom(4096)
+                if 2 == len(wSocketReceive):
+                    data, address = wSocketReceive
+                    if None != self.mCallback:
+                        wReply = self.mCallback(data, address)
+                        if (None != wReply) and ("" != wReply):
+                            self.send( wReply, address)
                         
             except socket.timeout as e:
                 pass

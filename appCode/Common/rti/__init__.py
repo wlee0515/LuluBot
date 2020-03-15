@@ -11,6 +11,7 @@ from .RTIFederate import stopRtiFederate
 
 from .RTIObjectManager import getRTIObjectManager
 from .RTIObjectManager import stopAllRTIObjectManager
+from .RTIObjectManager import processAllRTIObjectManagerIteration
 
 from .RTIEventManager import getRTIEventManager
 from .RTIEventManager import stopAllRTIEventManager

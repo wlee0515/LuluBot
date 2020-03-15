@@ -18,12 +18,12 @@ class InputConsole(ServiceManager.Service):
     def startService(self):
         if True == self.mStarted:
             return
-        log("Inoput Console Start")
+        log("Input Console Start")
         self.mStarted = True
         self.mEntryPointThread = threading.Thread(target=self.entryPoint) 
         self.mEntryPointThread.setDaemon(True)
         self.mEntryPointThread.start()
-        log("Inoput Console Start End")
+        log("Input Console Start End")
       
     def entryPoint(self):
         self.mRunning = True
@@ -84,7 +84,7 @@ class InputConsole(ServiceManager.Service):
     def stopService(self):
         if False == self.mStarted:
             return
-        log("Inoput Console End")
+        log("Input Console End")
         self.mStarted = False
         if None != self.mEntryPointThread:
             self.mRunning = False

@@ -45,6 +45,7 @@ class RTIServer:
         self.mStarted = True
         self.mUDPServer.startServer()
         self.mEntryPointThread = threading.Thread(target=self.entryPoint) 
+        self.mEntryPointThread.setDaemon(True)
         self.mEntryPointThread.start()
 
     def stopServer(self):
@@ -54,7 +55,7 @@ class RTIServer:
         self.mUDPServer.stopServer()
         if None != self.mEntryPointThread:
             self.mRunning = False
-            self.mEntryPointThread.join()
+            self.mEntryPointThread.join(1)
             self.mEntryPointThread = None
         self.mParticipantList.clear()
 

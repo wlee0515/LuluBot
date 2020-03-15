@@ -44,6 +44,7 @@ class RTIFederate:
             return
         self.mStarted = True
         self.mEntryPointThread = threading.Thread(target=self.entryPoint) 
+        self.mEntryPointThread.setDaemon(True)
         self.mEntryPointThread.start()
         log("Rti Federate Started")
 
@@ -53,7 +54,7 @@ class RTIFederate:
         self.mStarted = False
         if None != self.mEntryPointThread:
             self.mRunning = False
-            self.mEntryPointThread.join()
+            self.mEntryPointThread.join(1)
             self.mEntryPointThread = None
         self.mUDPClient.stopSocket()
         log("Rti Federate Stopped")
