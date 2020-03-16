@@ -65,7 +65,7 @@ class RTIProcessControl:
     def endProcess(self):
         self.mEnd = True
 
-    def __iterationThread__(self, iFrequency, iContext):
+    def __iterationThread__(self, iFrequency, iContext, iRtiServer):
         if None == self.mProcessIterationFunction:
             return
 
@@ -79,11 +79,17 @@ class RTIProcessControl:
         if wOneShotProcess:
             self.mProcessIterationFunction(iContext)
             processAllRTIObjectManagerIteration()
+            getRtiFederate().iteration()
+            if None != iRtiServer:
+                iRtiServer.iteration()
         else:
             self.mRunning = True
             while(self.mRunning):
                 self.mProcessIterationFunction(iContext)
                 processAllRTIObjectManagerIteration()
+                getRtiFederate().iteration()
+                if None != iRtiServer:
+                    iRtiServer.iteration()
                 time.sleep(wTimeStep)
 
     def run(self, iFrequency, iContext):
@@ -109,7 +115,7 @@ class RTIProcessControl:
             self.mProcessStartFunction(iContext)
 
         self.setProcessPhase("running")
-        self.mIterationThread = threading.Thread(target= self.__iterationThread__, args=(iFrequency,iContext)) 
+        self.mIterationThread = threading.Thread(target= self.__iterationThread__, args=(iFrequency,iContext,wRTIServer)) 
         self.mIterationThread.setDaemon(True)
         self.mIterationThread.start()
 

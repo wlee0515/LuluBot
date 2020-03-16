@@ -1,4 +1,4 @@
-import time, threading
+import time
 import json
 from appCode.Device.socket import UDPServer
 from appCode.Common.utility import log
@@ -34,61 +34,44 @@ class RTIServer:
         self.mUDPServer = UDPServer(getRtiServerPort(), self.message)
         self.mParticipantList = {}
         self.mStarted = False
-        self.mRunning = False
-        self.mEntryPointThread = None
-        self.mLastEntryPointTime = None
+        self.mLastIterationTime = time.time()
         self.mServerHash = getRtiServerHash()
 
     def startServer(self):
         if True == self.mStarted:
             return
         self.mStarted = True
+        self.mLastIterationTime = time.time()
         self.mUDPServer.startServer()
-        self.mEntryPointThread = threading.Thread(target=self.entryPoint) 
-        self.mEntryPointThread.setDaemon(True)
-        self.mEntryPointThread.start()
+        wTimeOut = getRtiParticipantTimeOut()
+        log("Entry point started with participant Timeout at {} s".format(wTimeOut))
 
     def stopServer(self):
         if False == self.mStarted:
             return
         self.mStarted = False
         self.mUDPServer.stopServer()
-        if None != self.mEntryPointThread:
-            self.mRunning = False
-            self.mEntryPointThread.join(1)
-            self.mEntryPointThread = None
         self.mParticipantList.clear()
 
-    def entryPoint(self):
-        self.mRunning = True
+    def iteration(self):
+        wNewTime = time.time()
+        wDeltaTime = wNewTime - self.mLastIterationTime
+        self.mLastIterationTime = wNewTime
+        
         wTimeOut = getRtiParticipantTimeOut()
-        wSleepTime =(wTimeOut+1)/10
-        log("Entry point started with participant Timeout at {} s".format(wTimeOut))
-        wLastTime = time.time()
 
-
-        while(self.mRunning):
-            wCurrentTime = time.time()
-            wDeltaTime = wCurrentTime - wLastTime
-            wDeleteList = []
-            for wKey, wProxy in self.mParticipantList.items():
-                if wProxy.mElapseTime > wTimeOut:
-                    wDeleteList.append(wKey)
-                else:            
-                    wProxy.mElapseTime += wDeltaTime
+        wDeleteList = []
+        for wKey, wProxy in self.mParticipantList.items():
+            if wProxy.mElapseTime > wTimeOut:
+                wDeleteList.append(wKey)
+            else:            
+                wProxy.mElapseTime += wDeltaTime
                   
-            
-            for wKey in wDeleteList:
-                wProxy = self.mParticipantList[wKey]
-                wAddressString = "{}:{}".format(*wProxy.mAddress)
-                log("Participant {} left".format(wAddressString))
-                del self.mParticipantList[wKey]
-
-            wLastTime = wCurrentTime
-            time.sleep(wSleepTime)
-
-        log("RTI Server Entry point Exited")
-
+        for wKey in wDeleteList:
+            wProxy = self.mParticipantList[wKey]
+            wAddressString = "{}:{}".format(*wProxy.mAddress)
+            log("Participant {} left".format(wAddressString))
+            del self.mParticipantList[wKey]
 
     def message(self, iMessage, iAddress):
         wAddressString = "{}:{}".format(*iAddress)

@@ -1,4 +1,4 @@
-import time, threading, json
+import time, json
 from appCode.Device.socket import UDPClient
 from appCode.Common.utility import log
 from .RTISetup import getRtiParticipantTimeOut, getRtiServerHash, getRtiServerAddress, getRtiServerPort, getRtiDebugMode
@@ -25,7 +25,7 @@ class RTIFederate:
         self.mStarted = False
         self.mRunning = False
         self.mEntryPointThread = None
-        self.mLastEntryPointTime = None
+        self.mLastIterationTime = time.time()
         self.mEventCallbackList = []
         self.mLastMessageTime = 0
         self.mSubscriptionList = []
@@ -43,39 +43,31 @@ class RTIFederate:
         if True == self.mStarted:
             return
         self.mStarted = True
-        self.mEntryPointThread = threading.Thread(target=self.entryPoint) 
-        self.mEntryPointThread.setDaemon(True)
-        self.mEntryPointThread.start()
+        self.mLastIterationTime = time.time()
         log("Rti Federate Started")
 
     def stopFederate(self):
         if False == self.mStarted:
             return
         self.mStarted = False
-        if None != self.mEntryPointThread:
-            self.mRunning = False
-            self.mEntryPointThread.join(1)
-            self.mEntryPointThread = None
         self.mUDPClient.stopSocket()
         log("Rti Federate Stopped")
 
-    def entryPoint(self):
-        self.mRunning = True
+    def iteration(self):
+        wNewTime = time.time()
+        wDeltaTime = wNewTime - self.mLastIterationTime
+        self.mLastIterationTime = wNewTime
+        
         wTimeOut = getRtiParticipantTimeOut()
         wPingTime = (wTimeOut+1)/2
-        wCheckTime = wPingTime/10
-        while(self.mRunning):
-            if True == self.mUpdateSubsciption:
-                self.sendUpdateSubsciptionEvent()
-                self.mUpdateSubsciption = False
+        if True == self.mUpdateSubsciption:
+            self.sendUpdateSubsciptionEvent()
+            self.mUpdateSubsciption = False
             
-            else:
-                wTimeSinceLastMessage = time.time() - self.mLastMessageTime
-                if wTimeSinceLastMessage > wPingTime:
-                    self.sendMessage("ping".encode("utf8"))
-            time.sleep(wCheckTime)
-
-        log("RTI Federate Entry point Exited")
+        else:
+            wTimeSinceLastMessage = time.time() - self.mLastMessageTime
+            if wTimeSinceLastMessage > wPingTime:
+                self.sendMessage("ping".encode("utf8"))
 
     def sendMessage(self, iEvent):
         
